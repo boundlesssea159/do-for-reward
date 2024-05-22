@@ -13,6 +13,8 @@ contract TaskList {
 
     task[] private tasks;
 
+    uint256 public canBeAppliedNum;
+
     enum Status {
         Created,
         Executing,
@@ -47,6 +49,7 @@ contract TaskList {
             revert TaskAlreadyExists(_task.name);
         }
         tasks.push(_task);
+        canBeAppliedNum++;
     }
 
     function isTaskValid(task memory _task) internal view returns (bool) {
@@ -54,7 +57,8 @@ contract TaskList {
             bytes(_task.name).length > 0 &&
             bytes(_task.description).length > 0 &&
             _task.deadline > uint256(block.timestamp) * 1000 &&
-            _task.reward > 0;
+            _task.reward > 0 &&
+            _task.status == Status.Created;
     }
 
     function existTask(string memory name) internal view returns (bool) {
@@ -73,11 +77,21 @@ contract TaskList {
         return tasks.length;
     }
 
-    function showTasks() public view returns (task[] memory) {
-        return tasks;
+    function showTasks() public view returns (task[] memory, uint256[] memory) {
+        task[] memory showAbleTasks = new task[](canBeAppliedNum);
+        uint256[] memory indexs = new uint256[](canBeAppliedNum);
+        uint256 index = 0;
+        for (uint256 i = 0; i < tasks.length; i++) {
+            if (tasks[i].status == Status.Created) {
+                showAbleTasks[index] = tasks[i];
+                indexs[index] = i;
+                index++;
+            }
+        }
+        return (showAbleTasks, indexs);
     }
 
-    function applyTask(uint256 index) public returns (bool) {
+    function applyTask(uint256 index) public {
         if (index >= tasks.length) {
             revert TaskNotExist(index);
         }
@@ -85,6 +99,7 @@ contract TaskList {
             revert TaskHasBeenApplied(index);
         }
         tasks[index].status = Status.Executing;
+        canBeAppliedNum--;
         emit TaskApplied(index);
     }
 }

@@ -55,6 +55,12 @@ describe("TaskList", () => {
       await expect(taskList.addTask(taskWithInvalidReward)).to.be.rejectedWith(
         "TaskInvalid"
       );
+      // status is not created
+      let taskWithNonCreatedStatus = task;
+      taskWithNonCreatedStatus.status = 1;
+      await expect(
+        taskList.addTask(taskWithNonCreatedStatus)
+      ).to.be.rejectedWith("TaskInvalid");
     });
 
     it("should revert if task isn't added  by deployer", async () => {
@@ -70,13 +76,20 @@ describe("TaskList", () => {
     });
 
     describe("show tasks", async () => {
-      it("should show tasks", async () => {
+      it("should show tasks with created status", async () => {
         await taskList.addTask(task);
-        let secondTask = task;
-        secondTask.name = "second task";
-        await taskList.addTask(secondTask);
-        const tasks = await taskList.showTasks();
-        assert.isAbove(tasks.length, 1);
+        const [, indexs] = await taskList.showTasks();
+        assert.equal(indexs.length, 1);
+        assert.equal(indexs[0], 0);
+        // add task with non created status
+        const taskWithNonCreatedStatus = task;
+        taskWithNonCreatedStatus.name = "second task";
+        await taskList.addTask(taskWithNonCreatedStatus);
+        const response = await taskList.applyTask(indexs[0]);
+        response.wait(1);
+        const [, newIndexs] = await taskList.showTasks();
+        assert.equal(newIndexs.length, 1);
+        assert.equal(newIndexs[0], 1);
       });
     });
 

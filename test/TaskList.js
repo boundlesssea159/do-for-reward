@@ -32,31 +32,31 @@ describe("TaskList", () => {
 
     it("should fail to add a task without neceesary information", async () => {
       // name is empty
-      let taskWithOutName = task;
+      let taskWithOutName = {...task};
       taskWithOutName.name = "";
       await expect(taskList.addTask(taskWithOutName)).to.be.rejectedWith(
         "TaskInvalid"
       );
       // description is empty
-      let taskWithOutDescription = task;
-      taskWithOutDescription.describe = "";
+      let taskWithOutDescription = {...task};
+      taskWithOutDescription.description = "";
       await expect(taskList.addTask(taskWithOutDescription)).to.be.rejectedWith(
         "TaskInvalid"
       );
       // deadline is in the past
-      let taskWithInvalidDeadline = task;
+      let taskWithInvalidDeadline = {...task};
       taskWithInvalidDeadline.deadline = getTimestamp(2024, 5, 21);
       await expect(
         taskList.addTask(taskWithInvalidDeadline)
       ).to.be.rejectedWith("TaskInvalid");
       // reward is no more than zero
-      let taskWithInvalidReward = task;
+      let taskWithInvalidReward = {...task};
       taskWithInvalidReward.reward = 0;
       await expect(taskList.addTask(taskWithInvalidReward)).to.be.rejectedWith(
         "TaskInvalid"
       );
       // status is not created
-      let taskWithNonCreatedStatus = task;
+      let taskWithNonCreatedStatus = {...task};
       taskWithNonCreatedStatus.status = 1;
       await expect(
         taskList.addTask(taskWithNonCreatedStatus)
@@ -118,6 +118,9 @@ describe("TaskList", () => {
     });
   });
 
+  describe("finishTask", async () => {
+    
+  });
   // todo anyone can get reward when complete task
   // todo deployer can mark the task finished
   // todo if task is finished,tasks should clean it out

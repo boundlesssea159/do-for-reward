@@ -2,7 +2,8 @@ require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-deploy");
 require("dotenv").config();
 // require("hardhat-gas-reporter")
-require("solidity-coverage")
+require("solidity-coverage");
+require("hardhat-gas-reporter");
 
 const API_KEY = process.env.API_KEY;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -28,5 +29,8 @@ module.exports = {
   },
   mocha: {
     timout: 100000,
+  },
+  gasReporter: {
+    enabled: true,
   },
 };

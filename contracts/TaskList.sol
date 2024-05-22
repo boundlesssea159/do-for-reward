@@ -41,7 +41,6 @@ contract TaskList {
     }
 
     function addTask(task memory _task) public onlyOwner {
-        console.log("_task:", _task.name);
         if (!isTaskValid(_task)) {
             revert TaskInvalid();
         }

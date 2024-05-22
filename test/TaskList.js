@@ -28,38 +28,30 @@ describe("TaskList", () => {
     });
 
     it("should fail to add a task without neceesary information", async () => {
-      // name is empty  
-      const taskWithOutName = {
-        name: "",
-        description: "A test task for the smart contract.",
-        deadline: getTimestamp(2024, 5, 28), // 24 hours from now (in Unix timestamp)
-        reward: "1000000000000000000", // 1 ETH in wei
-      };
-      await expect(taskList.addTask(taskWithOutName)).to.be.rejectedWith("TaskInvalid");
+      // name is empty
+      let taskWithOutName = task;
+      taskWithOutName.name = "";
+      await expect(taskList.addTask(taskWithOutName)).to.be.rejectedWith(
+        "TaskInvalid"
+      );
       // description is empty
-      const taskWithOutDescription = {
-        name: "task",
-        description: "",
-        deadline: getTimestamp(2024, 5, 28), // 24 hours from now (in Unix timestamp)
-        reward: "1000000000000000000", // 1 ETH in wei
-      };
-      await expect(taskList.addTask(taskWithOutDescription)).to.be.rejectedWith("TaskInvalid");
+      let taskWithOutDescription = task;
+      taskWithOutDescription.describe = "";
+      await expect(taskList.addTask(taskWithOutDescription)).to.be.rejectedWith(
+        "TaskInvalid"
+      );
       // deadline is in the past
-      const taskWithInvalidDeadline = {
-        name: "task",
-        description: "description",
-        deadline: getTimestamp(2024, 5, 21), // 24 hours from now (in Unix timestamp)
-        reward: "1000000000000000000", // 1 ETH in wei
-      };
-      await expect(taskList.addTask(taskWithInvalidDeadline)).to.be.rejectedWith("TaskInvalid");
+      let taskWithInvalidDeadline = task;
+      taskWithInvalidDeadline.deadline = getTimestamp(2024, 5, 21);
+      await expect(
+        taskList.addTask(taskWithInvalidDeadline)
+      ).to.be.rejectedWith("TaskInvalid");
       // reward is no more than zero
-      const taskWithInvalidReward = {
-        name: "task",
-        description: "description",
-        deadline: getTimestamp(2024, 5, 21), // 24 hours from now (in Unix timestamp)
-        reward: "0", // 1 ETH in wei
-      };
-      await expect(taskList.addTask(taskWithInvalidReward)).to.be.rejectedWith("TaskInvalid");
+      let taskWithInvalidReward = task;
+      taskWithInvalidReward.reward = 0;
+      await expect(taskList.addTask(taskWithInvalidReward)).to.be.rejectedWith(
+        "TaskInvalid"
+      );
     });
 
     it("should revert if task isn't added  by deployer", async () => {
@@ -69,10 +61,13 @@ describe("TaskList", () => {
 
     it("should fail to add the same task more than once", async () => {
       await taskList.addTask(task);
-      await expect(taskList.addTask(task)).to.be.rejectedWith("TaskAlreadyExists");
+      await expect(taskList.addTask(task)).to.be.rejectedWith(
+        "TaskAlreadyExists"
+      );
     });
   });
 
+  // todo deployer can mark the task finished
   // todo if task is finished,tasks should clean it out
   // todo support anyone pick any task to complete
   // todo anyone can get reward when complete task

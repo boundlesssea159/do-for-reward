@@ -15,8 +15,9 @@ describe("TaskList", () => {
     task = {
       name: "Task",
       description: "A task for unit test",
-      deadline: getTimestamp(2024, 5, 28),
-      reward: "1000000000000000000",
+      deadline: getTimestamp(2024, 5, 28).toString(),
+      reward: "100",
+      status: 0,
     };
     const deployInfo = await deployments.get("TaskList");
     taskList = await ethers.getContractAt(deployInfo.abi, deployInfo.address);
@@ -79,27 +80,28 @@ describe("TaskList", () => {
       });
     });
 
-    describe("get task", () => {
-      it("should get task", async () => {
+    describe("apply task", () => {
+      it("should apply task", async () => {
         await taskList.addTask(task);
-        const success = await taskList.applyTask(0);
-        console.log("success:", success);
-        assert.equal(success, true);
+        const response = await taskList.applyTask(0);
+        await response.wait(1);
+        expect(response).to.emit(taskList, "TaskApplied");
       });
       it("should revert if task not exist", async () => {
         await expect(taskList.applyTask(0)).to.be.rejectedWith("TaskNotExist");
       });
-    
-      it("should revert if task has been got", async () => {
+
+      it("should revert if task has been applied", async () => {
         await taskList.addTask(task);
         // first one gets task successfully
-        const success = await taskList.applyTask(0);
-        assert.equal(success, true);
+        const response = await taskList.applyTask(0);
+        await response.wait(1);
+        expect(response).to.emit(taskList, "TaskApplied");
         // seconde one gets task unsuccessfully
-        await expect(taskList.applyTask(0)).to.be.rejectedWith("TaskHasBeenApplied");
+        await expect(taskList.applyTask(0)).to.be.rejectedWith(
+          "TaskHasBeenApplied"
+        );
       });
-      
-
     });
   });
 

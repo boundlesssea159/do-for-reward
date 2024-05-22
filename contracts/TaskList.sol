@@ -13,6 +13,14 @@ contract TaskList {
 
     task[] private tasks;
 
+    enum Status {
+        Created,
+        Executing,
+        Finished
+    }
+
+    event TaskApplied(uint256 indexed index);
+
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner can call this function.");
         _;
@@ -27,9 +35,11 @@ contract TaskList {
         string description;
         uint256 deadline;
         uint256 reward; // USD
+        Status status;
     }
 
     function addTask(task memory _task) public onlyOwner {
+        console.log("_task:", _task.name);
         if (!isTaskValid(_task)) {
             revert TaskInvalid();
         }
@@ -43,7 +53,7 @@ contract TaskList {
         return
             bytes(_task.name).length > 0 &&
             bytes(_task.description).length > 0 &&
-            uint256(block.timestamp) * 1000 < _task.deadline &&
+            _task.deadline > uint256(block.timestamp) * 1000 &&
             _task.reward > 0;
     }
 
@@ -67,10 +77,14 @@ contract TaskList {
         return tasks;
     }
 
-    function applyTask(uint256 index) public view returns (bool) {
+    function applyTask(uint256 index) public returns (bool) {
         if (index >= tasks.length) {
             revert TaskNotExist(index);
-        } 
-        return true;
+        }
+        if (tasks[index].status != Status.Created) {
+            revert TaskHasBeenApplied(index);
+        }
+        tasks[index].status = Status.Executing;
+        emit TaskApplied(index);
     }
 }

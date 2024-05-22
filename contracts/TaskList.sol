@@ -5,6 +5,8 @@ import "hardhat/console.sol";
 
 error TaskInvalid();
 error TaskAlreadyExists(string name);
+error TaskNotExist(uint256 index);
+error TaskHasBeenApplied(uint256 index);
 
 contract TaskList {
     address private owner;
@@ -42,7 +44,7 @@ contract TaskList {
             bytes(_task.name).length > 0 &&
             bytes(_task.description).length > 0 &&
             uint256(block.timestamp) * 1000 < _task.deadline &&
-            _task.reward>0;
+            _task.reward > 0;
     }
 
     function existTask(string memory name) internal view returns (bool) {
@@ -59,5 +61,16 @@ contract TaskList {
 
     function numOfTasks() public view returns (uint256) {
         return tasks.length;
+    }
+
+    function showTasks() public view returns (task[] memory) {
+        return tasks;
+    }
+
+    function applyTask(uint256 index) public view returns (bool) {
+        if (index >= tasks.length) {
+            revert TaskNotExist(index);
+        } 
+        return true;
     }
 }

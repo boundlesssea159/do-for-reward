@@ -1,0 +1,6 @@
+
+const chainInformations = {}
+
+module.exports = {
+
+}

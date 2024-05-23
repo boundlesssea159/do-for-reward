@@ -9,19 +9,21 @@ function getTimestamp(year, month, day) {
 }
 
 describe("TaskList", () => {
-  let task, singers, taskList;
+  let task, singers, taskList, chainId, reward;
   beforeEach(async () => {
     await deployments.fixture(["all"]);
     singers = await ethers.getSigners();
+    reward = "1000000000000000000000";
     task = {
       name: "Task",
       description: "A task for unit test",
       deadline: getTimestamp(2024, 5, 28).toString(),
-      reward: "100",
+      reward: reward, // ETH wei
       status: 0,
     };
     const deployInfo = await deployments.get("TaskList");
     taskList = await ethers.getContractAt(deployInfo.abi, deployInfo.address);
+    chainId = 31337;
   });
 
   describe("add task", () => {
@@ -92,7 +94,7 @@ describe("TaskList", () => {
           taskWithNonCreatedStatus
         );
         await addAnotherTaskResponse.wait(1);
-        const response = await taskList.applyTask(indexs[0]);
+        const response = await taskList.applyTask(indexs[0], chainId);
         response.wait(1);
         const [, newIndexs] = await taskList.showTasks();
         assert.equal(newIndexs.length, 1);
@@ -104,23 +106,25 @@ describe("TaskList", () => {
       it("should apply task", async () => {
         const addTaskResponse = await taskList.addTask(task);
         await addTaskResponse.wait(1);
-        const response = await taskList.applyTask(0);
+        const response = await taskList.applyTask(0, chainId);
         await response.wait(1);
         expect(response).to.emit(taskList, "TaskApplied");
       });
       it("should revert if task not exist", async () => {
-        await expect(taskList.applyTask(0)).to.be.rejectedWith("TaskNotExist");
+        await expect(taskList.applyTask(0, chainId)).to.be.rejectedWith(
+          "TaskNotExist"
+        );
       });
 
       it("should revert if task has been applied", async () => {
         const addTaskResponse = await taskList.addTask(task);
         await addTaskResponse.wait(1);
         // first one gets task successfully
-        const response = await taskList.applyTask(0);
+        const response = await taskList.applyTask(0, chainId);
         await response.wait(1);
         expect(response).to.emit(taskList, "TaskApplied");
         // seconde one gets task unsuccessfully
-        await expect(taskList.applyTask(0)).to.be.rejectedWith(
+        await expect(taskList.applyTask(0, chainId)).to.be.rejectedWith(
           "TaskHasBeenApplied"
         );
       });
@@ -134,7 +138,7 @@ describe("TaskList", () => {
       console.log("addTaskResponse:", addTaskResponse);
       const [, indexs] = await taskList.showTasks();
       assert.equal(indexs.length, 1);
-      const response = await taskList.markDone(indexs[0]);
+      const response = await taskList.markDone(indexs[0], { value: reward });
       await response.wait(1);
       const [, newIndexs] = await taskList.showTasks();
       assert.equal(newIndexs.length, 0);
@@ -144,26 +148,50 @@ describe("TaskList", () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const newTaskList = taskList.connect(singers[1]);
-      await expect(newTaskList.markDone(0)).to.be.rejectedWith();
+      await expect(
+        newTaskList.markDone(0, { value: reward })
+      ).to.be.rejectedWith();
     });
 
     it("should revert if task is not exist", async () => {
-      await expect(taskList.markDone(0)).to.be.rejectedWith("TaskNotExist");
+      await expect(taskList.markDone(0, { value: reward })).to.be.rejectedWith(
+        "TaskNotExist"
+      );
     });
 
     it("should revert if task status is done", async () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const [, indexs] = await taskList.showTasks();
-      const response = await taskList.markDone(indexs[0]);
+      const response = await taskList.markDone(indexs[0], { value: reward });
       await response.wait(1);
-      await expect(taskList.markDone(indexs[0])).to.be.revertedWith(
-        "task is finished"
-      );
+      await expect(
+        taskList.markDone(indexs[0], { value: reward })
+      ).to.be.revertedWith("task is finished");
     });
 
-    it("should transfer token to the account when task is finished", async () => {
-        
+    it("should transfer token to someone when task is finished", async () => {
+      // deployer add task
+      const addTaskResponse = await taskList.addTask(task);
+      await addTaskResponse.wait(1);
+      const [, indexs] = await taskList.showTasks();
+      // someone else apply it
+      const applier = singers[1];
+      const beforeBalance = await ethers.provider.getBalance(applier.address);
+      console.log("before balance:", beforeBalance);
+      const taskForApplying = taskList.connect(applier);
+      const applyResonse = await taskForApplying.applyTask(indexs[0], chainId);
+      await applyResonse.wait(1);
+      // deployer transfer token to the one who apply and finish the task.
+      const taskForMarkingDone = taskList.connect(singers[0]);
+      const markDoneResponse = await taskForMarkingDone.markDone(indexs[0], { value: reward });
+      await markDoneResponse.wait(1);
+      // assert someone account balance has increased
+      const afterBalance = await ethers.provider.getBalance(applier.address);
+      assert.isAbove(afterBalance, beforeBalance);
+      await expect(markDoneResponse).to.emit(taskForMarkingDone,"TransferSuccess");
+      console.log("after balance:", afterBalance);
     });
+    // todo transfer token to anthoer link.
   });
 });

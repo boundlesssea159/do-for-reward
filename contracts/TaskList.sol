@@ -91,14 +91,25 @@ contract TaskList {
     }
 
     function applyTask(uint256 index) public {
-        if (index >= tasks.length) {
-            revert TaskNotExist(index);
-        }
+        taskShouldBeExist(index);
         if (tasks[index].status != Status.Created) {
             revert TaskHasBeenApplied(index);
         }
         tasks[index].status = Status.Executing;
         canBeAppliedNum--;
         emit TaskApplied(index);
+    }
+
+    function taskShouldBeExist(uint256 index) internal view {
+        if (index >= tasks.length) {
+            revert TaskNotExist(index);
+        }
+    }
+
+    function markDone(uint256 index) public {
+        taskShouldBeExist(index);
+        require(tasks[index].status != Status.Finished, "task is finished");
+        tasks[index].status = Status.Finished;
+        canBeAppliedNum--;
     }
 }

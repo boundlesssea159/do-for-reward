@@ -25,38 +25,39 @@ describe("TaskList", () => {
 
   describe("add task", () => {
     it("should add task by deployer", async () => {
-      await taskList.addTask(task);
+      const addTaskResponse = await taskList.addTask(task);
+      await addTaskResponse.wait(1);
       const size = await taskList.numOfTasks();
       assert.equal(size, 1);
     });
 
     it("should fail to add a task without neceesary information", async () => {
       // name is empty
-      let taskWithOutName = {...task};
+      let taskWithOutName = { ...task };
       taskWithOutName.name = "";
       await expect(taskList.addTask(taskWithOutName)).to.be.rejectedWith(
         "TaskInvalid"
       );
       // description is empty
-      let taskWithOutDescription = {...task};
+      let taskWithOutDescription = { ...task };
       taskWithOutDescription.description = "";
       await expect(taskList.addTask(taskWithOutDescription)).to.be.rejectedWith(
         "TaskInvalid"
       );
       // deadline is in the past
-      let taskWithInvalidDeadline = {...task};
+      let taskWithInvalidDeadline = { ...task };
       taskWithInvalidDeadline.deadline = getTimestamp(2024, 5, 21);
       await expect(
         taskList.addTask(taskWithInvalidDeadline)
       ).to.be.rejectedWith("TaskInvalid");
       // reward is no more than zero
-      let taskWithInvalidReward = {...task};
+      let taskWithInvalidReward = { ...task };
       taskWithInvalidReward.reward = 0;
       await expect(taskList.addTask(taskWithInvalidReward)).to.be.rejectedWith(
         "TaskInvalid"
       );
       // status is not created
-      let taskWithNonCreatedStatus = {...task};
+      let taskWithNonCreatedStatus = { ...task };
       taskWithNonCreatedStatus.status = 1;
       await expect(
         taskList.addTask(taskWithNonCreatedStatus)
@@ -69,7 +70,8 @@ describe("TaskList", () => {
     });
 
     it("should fail to add the same task more than once", async () => {
-      await taskList.addTask(task);
+      const addTaskResponse = await taskList.addTask(task);
+      await addTaskResponse.wait(1);
       await expect(taskList.addTask(task)).to.be.rejectedWith(
         "TaskAlreadyExists"
       );
@@ -77,14 +79,18 @@ describe("TaskList", () => {
 
     describe("show tasks", async () => {
       it("should show tasks with created status", async () => {
-        await taskList.addTask(task);
+        const addTaskResponse = await taskList.addTask(task);
+        await addTaskResponse.wait(1);
         const [, indexs] = await taskList.showTasks();
         assert.equal(indexs.length, 1);
         assert.equal(indexs[0], 0);
         // add task with non created status
         const taskWithNonCreatedStatus = task;
         taskWithNonCreatedStatus.name = "second task";
-        await taskList.addTask(taskWithNonCreatedStatus);
+        const addAnotherTaskResponse = await taskList.addTask(
+          taskWithNonCreatedStatus
+        );
+        await addAnotherTaskResponse.wait(1);
         const response = await taskList.applyTask(indexs[0]);
         response.wait(1);
         const [, newIndexs] = await taskList.showTasks();
@@ -95,7 +101,8 @@ describe("TaskList", () => {
 
     describe("apply task", () => {
       it("should apply task", async () => {
-        await taskList.addTask(task);
+        const addTaskResponse = await taskList.addTask(task);
+        await addTaskResponse.wait(1);
         const response = await taskList.applyTask(0);
         await response.wait(1);
         expect(response).to.emit(taskList, "TaskApplied");
@@ -105,7 +112,8 @@ describe("TaskList", () => {
       });
 
       it("should revert if task has been applied", async () => {
-        await taskList.addTask(task);
+        const addTaskResponse = await taskList.addTask(task);
+        await addTaskResponse.wait(1);
         // first one gets task successfully
         const response = await taskList.applyTask(0);
         await response.wait(1);
@@ -118,8 +126,33 @@ describe("TaskList", () => {
     });
   });
 
-  describe("finishTask", async () => {
-    
+  describe("mark done", async () => {
+    it("should mark task done", async () => {
+      const addTaskResponse = await taskList.addTask(task);
+      await addTaskResponse.wait(1);
+      console.log("addTaskResponse:", addTaskResponse);
+      const [, indexs] = await taskList.showTasks();
+      assert.equal(indexs.length, 1);
+      const response = await taskList.markDone(indexs[0]);
+      await response.wait(1);
+      const [, newIndexs] = await taskList.showTasks();
+      assert.equal(newIndexs.length, 0);
+    });
+
+    it("should revert if task is not exist", async () => {
+      await expect(taskList.markDone(0)).to.be.rejectedWith("TaskNotExist");
+    });
+
+    it("should revert if task status is done", async () => {
+      const addTaskResponse = await taskList.addTask(task);
+      await addTaskResponse.wait(1);
+      const [, indexs] = await taskList.showTasks();
+      const response = await taskList.markDone(indexs[0]);
+      await response.wait(1);
+      await expect(taskList.markDone(indexs[0])).to.be.revertedWith(
+        "task is finished"
+      );
+    });
   });
   // todo anyone can get reward when complete task
   // todo deployer can mark the task finished

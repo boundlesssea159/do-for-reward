@@ -106,10 +106,12 @@ contract TaskList {
         }
     }
 
-    function markDone(uint256 index) public onlyOwner{
+    function markDone(uint256 index) public onlyOwner {
         taskShouldBeExist(index);
         require(tasks[index].status != Status.Finished, "task is finished");
+        if (tasks[index].status == Status.Created) {
+            canBeAppliedNum--;
+        }
         tasks[index].status = Status.Finished;
-        canBeAppliedNum--;
     }
 }

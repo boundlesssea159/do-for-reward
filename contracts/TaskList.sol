@@ -106,7 +106,7 @@ contract TaskList {
         }
     }
 
-    function markDone(uint256 index) public {
+    function markDone(uint256 index) public onlyOwner{
         taskShouldBeExist(index);
         require(tasks[index].status != Status.Finished, "task is finished");
         tasks[index].status = Status.Finished;

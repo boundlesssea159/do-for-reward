@@ -1,5 +1,6 @@
 const { assert, expect } = require("chai");
 const { log } = require("console");
+const exp = require("constants");
 const { deployments, ethers } = require("hardhat");
 const { describe } = require("node:test");
 
@@ -139,6 +140,13 @@ describe("TaskList", () => {
       assert.equal(newIndexs.length, 0);
     });
 
+    it("should revert if sender is not deployer", async () => {
+      const addTaskResponse = await taskList.addTask(task);
+      await addTaskResponse.wait(1);
+      const newTaskList = taskList.connect(singers[1]);
+      await expect(newTaskList.markDone(0)).to.be.rejectedWith();
+    });
+
     it("should revert if task is not exist", async () => {
       await expect(taskList.markDone(0)).to.be.rejectedWith("TaskNotExist");
     });
@@ -153,8 +161,9 @@ describe("TaskList", () => {
         "task is finished"
       );
     });
+
+    it("should transfer token to the account when task is finished", async () => {
+        
+    });
   });
-  // todo anyone can get reward when complete task
-  // todo deployer can mark the task finished
-  // todo if task is finished,tasks should clean it out
 });

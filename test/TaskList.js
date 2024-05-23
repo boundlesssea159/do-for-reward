@@ -132,18 +132,6 @@ describe("TaskList", () => {
   });
 
   describe("mark done", async () => {
-    it("should mark task done", async () => {
-      const addTaskResponse = await taskList.addTask(task);
-      await addTaskResponse.wait(1);
-      console.log("addTaskResponse:", addTaskResponse);
-      const [, indexs] = await taskList.showTasks();
-      assert.equal(indexs.length, 1);
-      const response = await taskList.markDone(indexs[0], { value: reward });
-      await response.wait(1);
-      const [, newIndexs] = await taskList.showTasks();
-      assert.equal(newIndexs.length, 0);
-    });
-
     it("should revert if sender is not deployer", async () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
@@ -163,6 +151,8 @@ describe("TaskList", () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const [, indexs] = await taskList.showTasks();
+      const applyResonse = await taskList.applyTask(indexs[0], chainId);
+      await applyResonse.wait(1);
       const response = await taskList.markDone(indexs[0], { value: reward });
       await response.wait(1);
       await expect(
@@ -175,6 +165,7 @@ describe("TaskList", () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const [, indexs] = await taskList.showTasks();
+      assert.equal(indexs.length, 1);
       // someone else apply it
       const applier = singers[1];
       const beforeBalance = await ethers.provider.getBalance(applier.address);
@@ -190,8 +181,11 @@ describe("TaskList", () => {
       const afterBalance = await ethers.provider.getBalance(applier.address);
       assert.isAbove(afterBalance, beforeBalance);
       await expect(markDoneResponse).to.emit(taskForMarkingDone,"TransferSuccess");
+      const [, newIndexs] = await taskList.showTasks();
+      assert.equal(newIndexs.length, 0);
       console.log("after balance:", afterBalance);
     });
+    
     // todo transfer token to anthoer link.
   });
 });

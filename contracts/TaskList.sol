@@ -126,21 +126,20 @@ contract TaskList {
         // transfert to same link
         console.log("chain id:", block.chainid);
         console.log("destination chain id:", applier.chainId);
+        bool success;
         if (applier.chainId == block.chainid) {
-            (bool success, ) = address(applier.account).call{value: msg.value}(
-                ""
-            );
-            if (success) {
-                emit TransferSuccess(applier.account, msg.value);
-                tasks[index].status = Status.Finished;
-                delete taskToAccount[index];
-            }
+            (success, ) = address(applier.account).call{value: msg.value}("");
             console.log("transfer result:", success, tasks[index].reward);
-        }else {
+        } else {
             // todo transfer to another link account
             // 1. constructor recevie another contract address
             // 2. call the ccip function to transfer amount to another contract
             // 3. another contract will receive the amount and transfer to the person who finish the task(note: another contract should have enough amount balance)
+        }
+        if (success) {
+            emit TransferSuccess(applier.account, msg.value);
+            tasks[index].status = Status.Finished;
+            delete taskToAccount[index];
         }
     }
 }

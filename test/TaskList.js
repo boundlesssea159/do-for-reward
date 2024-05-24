@@ -147,17 +147,20 @@ describe("TaskList", () => {
       );
     });
 
-    it("should revert if task status is done", async () => {
+    it("should revert if task status is not execute", async () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const [, indexs] = await taskList.showTasks();
+      await expect(
+        taskList.markDone(indexs[0], { value: reward })
+      ).to.be.revertedWith("task doesn't execute");
       const applyResonse = await taskList.applyTask(indexs[0], chainId);
       await applyResonse.wait(1);
       const response = await taskList.markDone(indexs[0], { value: reward });
       await response.wait(1);
       await expect(
         taskList.markDone(indexs[0], { value: reward })
-      ).to.be.revertedWith("task is finished");
+      ).to.be.revertedWith("task doesn't execute");
     });
 
     it("should transfer token to someone when task is finished", async () => {
@@ -175,17 +178,44 @@ describe("TaskList", () => {
       await applyResonse.wait(1);
       // deployer transfer token to the one who apply and finish the task.
       const taskForMarkingDone = taskList.connect(singers[0]);
-      const markDoneResponse = await taskForMarkingDone.markDone(indexs[0], { value: reward });
+      const markDoneResponse = await taskForMarkingDone.markDone(indexs[0], {
+        value: reward,
+      });
       await markDoneResponse.wait(1);
       // assert someone account balance has increased
       const afterBalance = await ethers.provider.getBalance(applier.address);
       assert.isAbove(afterBalance, beforeBalance);
-      await expect(markDoneResponse).to.emit(taskForMarkingDone,"TransferSuccess");
+      await expect(markDoneResponse).to.emit(
+        taskForMarkingDone,
+        "TransferSuccess"
+      );
       const [, newIndexs] = await taskList.showTasks();
       assert.equal(newIndexs.length, 0);
       console.log("after balance:", afterBalance);
     });
+
+    describe("add contract address", () => {
+      it("should add other contract address", async () => {
+        const addChainContractAdrressResponse =
+          await taskList.addContractAddress(
+            43113,
+            "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
+          );
+        await addChainContractAdrressResponse.wait(1);
+        const exist = await taskList.hasContractAddressOfChain(43113);
+        assert.equal(exist, true);
+      });
+
+      it('should be only operated by deployer', async () => {
+        const newTaskList = taskList.connect(singers[1]);
+          await expect(newTaskList.addContractAddress(
+            43113,
+            "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
+          )).to.be.rejectedWith();
+      });
+    });
     
+
     // todo transfer token to anthoer link.
   });
 });

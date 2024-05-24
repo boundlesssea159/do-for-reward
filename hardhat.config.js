@@ -15,6 +15,8 @@ module.exports = {
     sepolia: {
       url: "https://eth-sepolia.g.alchemy.com/v2/" + API_KEY,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+      chainId: 11155111,
+      saveDeployments: true,
     },
   },
   namedAccounts: {

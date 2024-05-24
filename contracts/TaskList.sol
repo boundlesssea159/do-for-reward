@@ -19,7 +19,7 @@ contract TaskList {
         Status status;
     }
 
-    struct applierfomation {
+    struct applierInfomation {
         address account;
         uint256 chainId;
     }
@@ -30,7 +30,9 @@ contract TaskList {
 
     uint256 public canBeAppliedNum;
 
-    mapping(uint256 => applierfomation) taskToAccount;
+    mapping(uint256 => applierInfomation) private taskToAccount;
+
+    mapping(uint256 => address) private chainContractAddress;
 
     event TaskApplied(uint256 indexed index, address account);
     event TransferSuccess(address account, uint256 amount);
@@ -47,6 +49,19 @@ contract TaskList {
 
     constructor() {
         owner = msg.sender;
+    }
+
+    function addContractAddress(
+        uint256 chainId,
+        address contractAddress
+    ) public onlyOwner{
+        chainContractAddress[chainId] = contractAddress;
+    }
+
+    function hasContractAddressOfChain(
+        uint256 chainId
+    ) public view returns (bool) {
+        return chainContractAddress[chainId] != address(0);
     }
 
     function addTask(task memory _task) public onlyOwner {
@@ -106,7 +121,7 @@ contract TaskList {
         }
         tasks[index].status = Status.Executing;
         canBeAppliedNum--;
-        taskToAccount[index] = applierfomation(msg.sender, chainId);
+        taskToAccount[index] = applierInfomation(msg.sender, chainId);
         emit TaskApplied(index, msg.sender);
     }
 
@@ -118,18 +133,19 @@ contract TaskList {
 
     function markDone(uint256 index) public payable onlyOwner {
         taskShouldBeExist(index);
-        require(tasks[index].status != Status.Finished, "task is finished");
-        if (tasks[index].status == Status.Created) {
-            canBeAppliedNum--;
-        }
-        applierfomation memory applier = taskToAccount[index];
+        require(
+            tasks[index].status != Status.Created &&
+                tasks[index].status != Status.Finished,
+            "task doesn't execute"
+        );
+        applierInfomation memory applier = taskToAccount[index];
         // transfert to same link
         console.log("chain id:", block.chainid);
         console.log("destination chain id:", applier.chainId);
         bool success;
         if (applier.chainId == block.chainid) {
             (success, ) = address(applier.account).call{value: msg.value}("");
-            console.log("transfer result:", success, tasks[index].reward);
+            console.log("transfer result1:", success, tasks[index].reward);
         } else {
             // todo transfer to another link account
             // 1. constructor recevie another contract address

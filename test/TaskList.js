@@ -1,6 +1,5 @@
 const { assert, expect } = require("chai");
 const { log } = require("console");
-const exp = require("constants");
 const { deployments, ethers } = require("hardhat");
 const { describe } = require("node:test");
 
@@ -131,12 +130,11 @@ describe("TaskList", () => {
   });
 
   describe("mark done", async () => {
-
     beforeEach(async () => {
-     const deployer = singers[0];
-     const tx =  await deployer.sendTransaction({
-        to:taskList.target,
-        value:ethers.parseEther("2.0")
+      const deployer = singers[0];
+      const tx = await deployer.sendTransaction({
+        to: taskList.target,
+        value: ethers.parseEther("2.0"),
       });
       await tx.wait();
     });
@@ -149,25 +147,23 @@ describe("TaskList", () => {
     });
 
     it("should revert if task is not exist", async () => {
-      await expect(taskList.markDone(0)).to.be.rejectedWith(
-        "TaskNotExist"
-      );
+      await expect(taskList.markDone(0)).to.be.rejectedWith("TaskNotExist");
     });
 
     it("should revert if task status is not execute", async () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const [, indexs] = await taskList.showTasks();
-      await expect(
-        taskList.markDone(indexs[0])
-      ).to.be.revertedWith("task doesn't execute");
+      await expect(taskList.markDone(indexs[0])).to.be.revertedWith(
+        "task doesn't execute"
+      );
       const applyResonse = await taskList.applyTask(indexs[0], chainId);
       await applyResonse.wait(1);
       const response = await taskList.markDone(indexs[0]);
       await response.wait(1);
-      await expect(
-        taskList.markDone(indexs[0])
-      ).to.be.revertedWith("task doesn't execute");
+      await expect(taskList.markDone(indexs[0])).to.be.revertedWith(
+        "task doesn't execute"
+      );
     });
 
     it("should transfer token to someone when task is finished", async () => {
@@ -201,28 +197,28 @@ describe("TaskList", () => {
   });
 
   describe("add contract address", () => {
+    let rewardReceiverInfo;
+    beforeEach(async () => {
+      rewardReceiverInfo = await deployments.get("RewardReceiver");
+    });
     it("should add other contract address", async () => {
-      const addChainContractAdrressResponse = await taskList.addContractAddress(
-        43113,
-        "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
-      );
+      const addChainContractAdrressResponse =
+        await taskList.addDestinationContractAddress(
+          chainId,
+          rewardReceiverInfo.address
+        );
       await addChainContractAdrressResponse.wait(1);
-      const exist = await taskList.hasContractAddressOfChain(43113);
+      const exist = await taskList.hasContractAddressOfChain(chainId);
       assert.equal(exist, true);
     });
-
     it("should only be called by deployer", async () => {
       const newTaskList = taskList.connect(singers[1]);
       await expect(
-        newTaskList.addContractAddress(
-          43113,
-          "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
+        newTaskList.addDestinationContractAddress(
+          chainId,
+          rewardReceiverInfo.address
         )
       ).to.be.rejectedWith();
     });
   });
-
-  // todo create a receive() function to receive ETH.
-
-  // todo transfer token to anthoer link.
 });

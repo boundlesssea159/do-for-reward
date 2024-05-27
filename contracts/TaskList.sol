@@ -31,15 +31,6 @@ contract TaskList {
     event TaskApplied(uint256 indexed index, address account);
     event TransferSuccess(address account, uint256 amount);
     event MessageSent(bytes32 messageId);
-    event TokensTransferred(
-        bytes32 indexed messageId, // The unique ID of the message.
-        uint64 indexed destinationChainSelector, // The chain selector of the destination chain.
-        address receiver, // The address of the receiver on the destination chain.
-        address token, // The token address that was transferred.
-        uint256 tokenAmount, // The token amount that was transferred.
-        address feeToken, // the token address used to pay CCIP fees.
-        uint256 fees // The fees paid for sending the message.
-    );
 
     error TaskInvalid();
     error TaskAlreadyExists(string name);
@@ -55,7 +46,7 @@ contract TaskList {
     uint256 public canBeAppliedNum;
 
     mapping(uint256 => applierInfomation) private taskToAccount;
-    mapping(uint256 => address) private chainContractAddress;
+    mapping(uint256 => address) private destinationContractAddress;
     mapping(uint64 => bool) public allowlistedChains;
 
     IRouterClient private router;
@@ -76,17 +67,19 @@ contract TaskList {
         _;
     }
 
-    function addContractAddress(
+    receive() external payable {}
+
+    function addDestinationContractAddress(
         uint256 chainId,
         address contractAddress
     ) public onlyOwner {
-        chainContractAddress[chainId] = contractAddress;
+        destinationContractAddress[chainId] = contractAddress;
     }
 
     function hasContractAddressOfChain(
         uint256 chainId
     ) public view returns (bool) {
-        return chainContractAddress[chainId] != address(0);
+        return destinationContractAddress[chainId] != address(0);
     }
 
     function allowlistDestinationChain(
@@ -164,7 +157,7 @@ contract TaskList {
     }
 
     function markDone(uint256 index) public payable onlyOwner {
-        console.log("balance:",address(this).balance);
+        console.log("balance:", address(this).balance);
         taskShouldBeExist(index);
         require(
             tasks[index].status != Status.Created &&
@@ -177,99 +170,36 @@ contract TaskList {
         console.log("destination chain id:", applier.chainId);
         bool success;
         if (applier.chainId == block.chainid) {
-            (success, ) = address(applier.account).call{value: tasks[index].reward}("");
+            (success, ) = address(applier.account).call{
+                value: tasks[index].reward
+            }("");
+            if (success) {
+                emit TransferSuccess(applier.account, msg.value);
+                tasks[index].status = Status.Finished;
+                delete taskToAccount[index];
+            }
             console.log("transfer result1:", success, tasks[index].reward);
         } else {
-            // todo transfer to another link account
-            // 1. constructor recevie another contract address
-            // 2. call the ccip function to transfer amount to another contract
-            // 3. another contract will receive the amount and transfer to the person who finish the task(note: another contract should have enough amount balance)
-        }
-        if (success) {
-            emit TransferSuccess(applier.account, msg.value);
-            tasks[index].status = Status.Finished;
-            delete taskToAccount[index];
+            // Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            //     receiver: abi.encode(""),
+            //     data: abi.encodeWithSignature(msg.sender, tasks[index].reward),
+            //     tokenAmounts: new Client.EVMTokenAmount[](0),
+            //     extraArgs: Client._argsToBytes(
+            //         Client.EVMExtraArgsV1({gasLimit: 980_000})
+            //     ),
+            //     feeToken: address(linkToken)
+            // });
+            // // Get the fee required to send the message
+            // uint256 fees = router.getFee(destinationChainSelector, message);
+            // if (fees > linkToken.balanceOf(address(this)))
+            //     revert NotEnoughBalance(
+            //         linkToken.balanceOf(address(this)),
+            //         fees
+            //     );
+            // bytes32 messageId;
+            // // Send the message through the router and store the returned message ID
+            // messageId = router.ccipSend(destinationChainSelector, message);
+            // emit MessageSent(messageId);
         }
     }
-
-    receive() external payable {}
-
-    // function reward(
-    //     uint64 _destinationChainSelector,
-    //     address _receiver, // can be account?
-    //     address _token,
-    //     uint256 _amount // xx
-    // )
-    //     external
-    //     onlyAllowlistedChain(_destinationChainSelector)
-    //     onlyOwner
-    //     returns (bytes32 messageId)
-    // {
-    //     // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-    //     // address(0) means fees are paid in native gas
-    //     Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
-    //         _receiver,
-    //         _token,
-    //         _amount,
-    //         address(0)
-    //     );
-
-    //     // Get the fee required to send the message
-    //     uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
-
-    //     if (fees > address(this).balance)
-    //         revert NotEnoughBalance(address(this).balance, fees);
-
-    //     // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
-    //     IERC20(_token).approve(address(router), _amount);
-
-    //     // Send the message through the router and store the returned message ID
-    //     messageId = router.ccipSend{value: fees}(
-    //         _destinationChainSelector,
-    //         evm2AnyMessage
-    //     );
-
-    //     // Emit an event with message details
-    //     emit TokensTransferred(
-    //         messageId,
-    //         _destinationChainSelector,
-    //         _receiver,
-    //         _token,
-    //         _amount,
-    //         address(0),
-    //         fees
-    //     );
-
-    //     // Return the message ID
-    //     return messageId;
-    // }
-
-    // function _buildCCIPMessage(
-    //     address _receiver,
-    //     address _token,
-    //     uint256 _amount,
-    //     address _feeTokenAddress
-    // ) private pure returns (Client.EVM2AnyMessage memory) {
-    //     // Set the token amounts
-    //     Client.EVMTokenAmount[]
-    //         memory tokenAmounts = new Client.EVMTokenAmount[](1);
-    //     tokenAmounts[0] = Client.EVMTokenAmount({
-    //         token: _token,
-    //         amount: _amount
-    //     });
-
-    //     // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-    //     return
-    //         Client.EVM2AnyMessage({
-    //             receiver: abi.encode(_receiver), // ABI-encoded receiver address
-    //             data: "", // No data
-    //             tokenAmounts: tokenAmounts, // The amount and type of token being transferred
-    //             extraArgs: Client._argsToBytes(
-    //                 // Additional arguments, setting gas limit to 0 as we are not sending any data
-    //                 Client.EVMExtraArgsV1({gasLimit: 0})
-    //             ),
-    //             // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
-    //             feeToken: _feeTokenAddress
-    //         });
-    // }
 }

@@ -9,16 +9,15 @@ function getTimestamp(year, month, day) {
 }
 
 describe("TaskList", () => {
-  let task, singers, taskList, chainId, reward;
+  let task, singers, taskList, chainId;
   beforeEach(async () => {
     await deployments.fixture(["all"]);
     singers = await ethers.getSigners();
-    reward = "1000000000000000000000";
     task = {
       name: "Task",
       description: "A task for unit test",
       deadline: getTimestamp(2024, 5, 28).toString(),
-      reward: reward, // ETH wei
+      reward: ethers.parseEther("1.0"), // ETH wei
       status: 0,
     };
     const deployInfo = await deployments.get("TaskList");
@@ -132,17 +131,25 @@ describe("TaskList", () => {
   });
 
   describe("mark done", async () => {
+
+    beforeEach(async () => {
+     const deployer = singers[0];
+     const tx =  await deployer.sendTransaction({
+        to:taskList.target,
+        value:ethers.parseEther("2.0")
+      });
+      await tx.wait();
+    });
+
     it("should revert if sender is not deployer", async () => {
       const addTaskResponse = await taskList.addTask(task);
       await addTaskResponse.wait(1);
       const newTaskList = taskList.connect(singers[1]);
-      await expect(
-        newTaskList.markDone(0, { value: reward })
-      ).to.be.rejectedWith();
+      await expect(newTaskList.markDone(0)).to.be.rejectedWith();
     });
 
     it("should revert if task is not exist", async () => {
-      await expect(taskList.markDone(0, { value: reward })).to.be.rejectedWith(
+      await expect(taskList.markDone(0)).to.be.rejectedWith(
         "TaskNotExist"
       );
     });
@@ -152,14 +159,14 @@ describe("TaskList", () => {
       await addTaskResponse.wait(1);
       const [, indexs] = await taskList.showTasks();
       await expect(
-        taskList.markDone(indexs[0], { value: reward })
+        taskList.markDone(indexs[0])
       ).to.be.revertedWith("task doesn't execute");
       const applyResonse = await taskList.applyTask(indexs[0], chainId);
       await applyResonse.wait(1);
-      const response = await taskList.markDone(indexs[0], { value: reward });
+      const response = await taskList.markDone(indexs[0]);
       await response.wait(1);
       await expect(
-        taskList.markDone(indexs[0], { value: reward })
+        taskList.markDone(indexs[0])
       ).to.be.revertedWith("task doesn't execute");
     });
 
@@ -178,9 +185,7 @@ describe("TaskList", () => {
       await applyResonse.wait(1);
       // deployer transfer token to the one who apply and finish the task.
       const taskForMarkingDone = taskList.connect(singers[0]);
-      const markDoneResponse = await taskForMarkingDone.markDone(indexs[0], {
-        value: reward,
-      });
+      const markDoneResponse = await taskForMarkingDone.markDone(indexs[0]);
       await markDoneResponse.wait(1);
       // assert someone account balance has increased
       const afterBalance = await ethers.provider.getBalance(applier.address);
@@ -193,29 +198,31 @@ describe("TaskList", () => {
       assert.equal(newIndexs.length, 0);
       console.log("after balance:", afterBalance);
     });
-
-    describe("add contract address", () => {
-      it("should add other contract address", async () => {
-        const addChainContractAdrressResponse =
-          await taskList.addContractAddress(
-            43113,
-            "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
-          );
-        await addChainContractAdrressResponse.wait(1);
-        const exist = await taskList.hasContractAddressOfChain(43113);
-        assert.equal(exist, true);
-      });
-
-      it('should be only operated by deployer', async () => {
-        const newTaskList = taskList.connect(singers[1]);
-          await expect(newTaskList.addContractAddress(
-            43113,
-            "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
-          )).to.be.rejectedWith();
-      });
-    });
-    
-
-    // todo transfer token to anthoer link.
   });
+
+  describe("add contract address", () => {
+    it("should add other contract address", async () => {
+      const addChainContractAdrressResponse = await taskList.addContractAddress(
+        43113,
+        "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
+      );
+      await addChainContractAdrressResponse.wait(1);
+      const exist = await taskList.hasContractAddressOfChain(43113);
+      assert.equal(exist, true);
+    });
+
+    it("should only be called by deployer", async () => {
+      const newTaskList = taskList.connect(singers[1]);
+      await expect(
+        newTaskList.addContractAddress(
+          43113,
+          "0x492575FDD11a0fCf2C6C719867890a7648d526eB"
+        )
+      ).to.be.rejectedWith();
+    });
+  });
+
+  // todo create a receive() function to receive ETH.
+
+  // todo transfer token to anthoer link.
 });

@@ -18,7 +18,7 @@ library PriceConverter {
         AggregatorV3Interface priceFeed
     ) internal view returns (uint256) {
         uint256 price = getPrice(priceFeed);
-        return (((USDAmount + price + 1e18) * 1e18) / price);
+        return (((USDAmount + price - 1e18) * 1e18) / price);
     }
 
     // return USD(10**18)

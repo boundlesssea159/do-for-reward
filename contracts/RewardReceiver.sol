@@ -3,11 +3,24 @@ pragma solidity ^0.8.0;
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import "hardhat/console.sol";
+import {PriceConverter} from "./PriceConverter.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 contract RewardReceiver is CCIPReceiver {
+    using PriceConverter for uint256;
+
+    AggregatorV3Interface private priceFeed;
+
     event Received(address to, uint256 amount);
     error ReceivedFailed(address to, uint256 amount);
-    constructor(address _router) CCIPReceiver(_router) {}
+
+    constructor(
+        address _router,
+        address _priceFeedAddress
+    ) CCIPReceiver(_router) {
+        priceFeed = AggregatorV3Interface(_priceFeedAddress);
+    }
+
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override {
@@ -15,12 +28,22 @@ contract RewardReceiver is CCIPReceiver {
             message.data,
             (address, uint256)
         );
-        (bool success, ) = to.call{value: amount}("");
+        // amount is USD * 1e18
+        balanceShouldMoreThanAmount(amount);
+        uint256 tokenAmount = amount.getTokenAmountByUSD(priceFeed);
+        (bool success, ) = to.call{value: tokenAmount}("");
         if (!success) {
-            console.log("recevied failed:", to, amount);
-            revert ReceivedFailed(to, amount);
+            console.log("recevied failed:", to, tokenAmount);
+            revert ReceivedFailed(to, tokenAmount);
         }
-        console.log("received:", to, amount);
-        emit Received(to, amount);
+        console.log("received:", to, tokenAmount);
+        emit Received(to, tokenAmount);
+    }
+
+    function balanceShouldMoreThanAmount(uint256 amount) internal view {
+        require(
+            address(this).balance.getConversionRate(priceFeed) >= amount,
+            "need more balance"
+        );
     }
 }

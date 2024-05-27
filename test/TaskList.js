@@ -16,7 +16,7 @@ describe("TaskList", () => {
       name: "Task",
       description: "A task for unit test",
       deadline: getTimestamp(2024, 5, 28).toString(),
-      reward: ethers.parseEther("0.01"), // ETH wei
+      reward: 1500,
       status: 0,
     };
     const deployInfo = await deployments.get("TaskList");

@@ -9,7 +9,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const rewardRecevier = await deploy("RewardReceiver", {
     from: deployer,
     log: true,
-    args: [networkConfig.fuji.router],
+    args: [networkConfig.fuji.router, networkConfig.fuji.priceFeed],
   });
   console.log("RewardReceiver contract has deployed:", rewardRecevier.address);
 };

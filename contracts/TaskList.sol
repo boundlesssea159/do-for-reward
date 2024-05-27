@@ -2,13 +2,16 @@
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
+import {PriceConverter} from "./PriceConverter.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 contract TaskList {
+    using PriceConverter for uint256;
+
     enum Status {
         Created,
         Executing,
@@ -46,15 +49,19 @@ contract TaskList {
 
     LinkTokenInterface private linkToken;
 
+    IRouterClient private router;
+
+    AggregatorV3Interface private priceFeed;
+
     mapping(uint256 => applierInfomation) private taskToAccount;
     mapping(uint256 => address) private destinationContractAddress;
     mapping(uint256 => uint64) private destinationSelector;
-    IRouterClient private router;
 
-    constructor(address _router, address _link) {
+    constructor(address _router, address _link, address _priceFeedAddress) {
         owner = msg.sender;
         router = IRouterClient(_router);
         linkToken = LinkTokenInterface(_link);
+        priceFeed = AggregatorV3Interface(_priceFeedAddress);
     }
 
     modifier onlyOwner() {
@@ -170,16 +177,24 @@ contract TaskList {
         console.log("chain id:", block.chainid);
         console.log("destination chain id:", applier.chainId);
         if (applier.chainId == block.chainid) {
-            sendReward(applier.account, index);
+            sendRewardOnLocalChain(applier.account, index);
         } else {
             sendRewardByCCIP(applier.chainId, index);
         }
     }
 
-    function sendReward(address account, uint256 index) internal {
-        (bool success, ) = address(account).call{value: tasks[index].reward}(
-            ""
+    function sendRewardOnLocalChain(address account, uint256 index) internal {
+        uint256 amount = tasks[index].reward * 1e18;
+        console.log("sendReward amount:",amount,address(this).balance.getConversionRate(priceFeed),amount.getTokenAmountByUSD(priceFeed));
+        require(
+            address(this).balance.getConversionRate(priceFeed) >= amount,
+            "need more balance"
         );
+        console.log("require check");
+        (bool success, ) = address(account).call{
+            value: amount.getTokenAmountByUSD(priceFeed)
+        }("");
+        console.log("send success:",success);
         if (success) {
             emit TransferSuccess(account, msg.value);
             cleanTask(index);
@@ -206,7 +221,7 @@ contract TaskList {
         return
             Client.EVM2AnyMessage({
                 receiver: abi.encode(destinationContractAddress[chainId]),
-                data: abi.encode(msg.sender, tasks[taskIndex].reward),
+                data: abi.encode(msg.sender, tasks[taskIndex].reward * 1e18),
                 tokenAmounts: new Client.EVMTokenAmount[](0),
                 extraArgs: Client._argsToBytes(
                     Client.EVMExtraArgsV1({gasLimit: 980_000})

@@ -16,7 +16,7 @@ describe("TaskList", () => {
       name: "Task",
       description: "A task for unit test",
       deadline: getTimestamp(2024, 5, 28).toString(),
-      reward: ethers.parseEther("1.0"), // ETH wei
+      reward: ethers.parseEther("0.01"), // ETH wei
       status: 0,
     };
     const deployInfo = await deployments.get("TaskList");
@@ -196,12 +196,12 @@ describe("TaskList", () => {
     });
   });
 
-  describe("add contract address", () => {
+  describe("add destination contract address", () => {
     let rewardReceiverInfo;
     beforeEach(async () => {
       rewardReceiverInfo = await deployments.get("RewardReceiver");
     });
-    it("should add other contract address", async () => {
+    it("should add destination contract address", async () => {
       const addChainContractAdrressResponse =
         await taskList.addDestinationContractAddress(
           chainId,
@@ -218,6 +218,23 @@ describe("TaskList", () => {
           chainId,
           rewardReceiverInfo.address
         )
+      ).to.be.rejectedWith();
+    });
+  });
+
+  describe("add destination chain selector", () => {
+    it("should add destination chain selector", async () => {
+      const addDestinationSelectorResponse =
+        await taskList.addDestinationSelector(chainId, "14767482510784806043");
+      await addDestinationSelectorResponse.wait(1);
+      const exist = await taskList.hasSelectorOfChain(chainId);
+      assert.equal(exist, true);
+    });
+
+    it("should only be called by deployer on addDestinationSelector", async () => {
+      const newTaskList = taskList.connect(singers[1]);
+      await expect(
+        newTaskList.addDestinationSelector(chainId, "14767482510784806043")
       ).to.be.rejectedWith();
     });
   });

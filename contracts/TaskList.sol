@@ -37,7 +37,6 @@ contract TaskList {
     error TaskNotExist(uint256 index);
     error TaskHasBeenApplied(uint256 index);
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees);
-    error DestinationChainNotAllowlisted(uint64 destinationChainSelector);
 
     address private owner;
 
@@ -45,25 +44,21 @@ contract TaskList {
 
     uint256 public canBeAppliedNum;
 
+    LinkTokenInterface private linkToken;
+
     mapping(uint256 => applierInfomation) private taskToAccount;
     mapping(uint256 => address) private destinationContractAddress;
-    mapping(uint64 => bool) public allowlistedChains;
-
+    mapping(uint256 => uint64) private destinationSelector;
     IRouterClient private router;
 
-    constructor(address _router) {
+    constructor(address _router, address _link) {
         owner = msg.sender;
         router = IRouterClient(_router);
+        linkToken = LinkTokenInterface(_link);
     }
 
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner can call this function.");
-        _;
-    }
-
-    modifier onlyAllowlistedChain(uint64 _destinationChainSelector) {
-        if (!allowlistedChains[_destinationChainSelector])
-            revert DestinationChainNotAllowlisted(_destinationChainSelector);
         _;
     }
 
@@ -82,11 +77,17 @@ contract TaskList {
         return destinationContractAddress[chainId] != address(0);
     }
 
-    function allowlistDestinationChain(
-        uint64 _destinationChainSelector,
-        bool allowed
-    ) external onlyOwner {
-        allowlistedChains[_destinationChainSelector] = allowed;
+    function addDestinationSelector(
+        uint256 chainId,
+        uint64 selector
+    ) public onlyOwner {
+        destinationSelector[chainId] = selector;
+    }
+
+    function hasSelectorOfChain(
+        uint256 chainId
+    ) public view onlyOwner returns (bool) {
+        return destinationSelector[chainId] > 0;
     }
 
     function addTask(task memory _task) public onlyOwner {
@@ -168,38 +169,63 @@ contract TaskList {
         // transfert to same link
         console.log("chain id:", block.chainid);
         console.log("destination chain id:", applier.chainId);
-        bool success;
         if (applier.chainId == block.chainid) {
-            (success, ) = address(applier.account).call{
-                value: tasks[index].reward
-            }("");
-            if (success) {
-                emit TransferSuccess(applier.account, msg.value);
-                tasks[index].status = Status.Finished;
-                delete taskToAccount[index];
-            }
-            console.log("transfer result1:", success, tasks[index].reward);
+            sendReward(applier.account, index);
         } else {
-            // Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            //     receiver: abi.encode(""),
-            //     data: abi.encodeWithSignature(msg.sender, tasks[index].reward),
-            //     tokenAmounts: new Client.EVMTokenAmount[](0),
-            //     extraArgs: Client._argsToBytes(
-            //         Client.EVMExtraArgsV1({gasLimit: 980_000})
-            //     ),
-            //     feeToken: address(linkToken)
-            // });
-            // // Get the fee required to send the message
-            // uint256 fees = router.getFee(destinationChainSelector, message);
-            // if (fees > linkToken.balanceOf(address(this)))
-            //     revert NotEnoughBalance(
-            //         linkToken.balanceOf(address(this)),
-            //         fees
-            //     );
-            // bytes32 messageId;
-            // // Send the message through the router and store the returned message ID
-            // messageId = router.ccipSend(destinationChainSelector, message);
-            // emit MessageSent(messageId);
+            sendRewardByCCIP(applier.chainId, index);
         }
+    }
+
+    function sendReward(address account, uint256 index) internal {
+        (bool success, ) = address(account).call{value: tasks[index].reward}(
+            ""
+        );
+        if (success) {
+            emit TransferSuccess(account, msg.value);
+            cleanTask(index);
+        }
+        console.log("transfer result:", success, tasks[index].reward);
+    }
+
+    function sendRewardByCCIP(uint256 chainId, uint256 index) internal {
+        Client.EVM2AnyMessage memory message = buildCCIPMsg(chainId, index);
+        balanceShouldMoreThanFee(chainId, message);
+        bytes32 messageId = router.ccipSend(
+            destinationSelector[chainId],
+            message
+        );
+        emit MessageSent(messageId);
+        cleanTask(index);
+        console.log("ccip sent");
+    }
+
+    function buildCCIPMsg(
+        uint256 chainId,
+        uint256 taskIndex
+    ) internal view returns (Client.EVM2AnyMessage memory) {
+        return
+            Client.EVM2AnyMessage({
+                receiver: abi.encode(destinationContractAddress[chainId]),
+                data: abi.encode(msg.sender, tasks[taskIndex].reward),
+                tokenAmounts: new Client.EVMTokenAmount[](0),
+                extraArgs: Client._argsToBytes(
+                    Client.EVMExtraArgsV1({gasLimit: 980_000})
+                ),
+                feeToken: address(linkToken)
+            });
+    }
+
+    function balanceShouldMoreThanFee(
+        uint256 chainId,
+        Client.EVM2AnyMessage memory message
+    ) internal view {
+        uint256 fees = router.getFee(destinationSelector[chainId], message);
+        if (fees > linkToken.balanceOf(address(this)))
+            revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
+    }
+
+    function cleanTask(uint256 taskIndex) internal {
+        tasks[taskIndex].status = Status.Finished;
+        delete taskToAccount[taskIndex];
     }
 }

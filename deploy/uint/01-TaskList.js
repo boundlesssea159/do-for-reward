@@ -10,7 +10,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const taskList = await deploy("TaskList", {
     from: deployer,
     log: true,
-    args: [networkConfig.sepolia.router],
+    args: [networkConfig.sepolia.router, networkConfig.sepolia.link],
   });
   console.log("TaskList contract has deployed:", taskList.address);
 };

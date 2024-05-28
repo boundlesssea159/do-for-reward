@@ -2,7 +2,7 @@ const { assert, expect } = require("chai");
 const { log } = require("console");
 const { deployments, ethers, network } = require("hardhat");
 const { describe } = require("node:test");
-const { developmentChains } = require("../config.helper.js");
+const { developmentChains } = require("../../config.helper.js");
 function getTimestamp() {
   var date = new Date();
   var newDate = date.setDate(date.getDate() + 10);

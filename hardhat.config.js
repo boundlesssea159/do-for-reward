@@ -5,7 +5,9 @@ require("solidity-coverage");
 require("hardhat-gas-reporter");
 
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const FUJI_RPC_URL = process.env.FUJI_RPC_URL;
+const USER1_PRIVATE_KEY = process.env.USER1_PRIVATE_KEY;
+const USER2_PRIVATE_KEY = process.env.USER2_PRIVATE_KEY;
 
 module.exports = {
   solidity: "0.8.24",
@@ -14,17 +16,25 @@ module.exports = {
     hardhat: {},
     sepolia: {
       url: SEPOLIA_RPC_URL,
-      accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+      accounts: [USER1_PRIVATE_KEY, USER2_PRIVATE_KEY],
       chainId: 11155111,
+      saveDeployments: true,
+    },
+    fuji: {
+      url: FUJI_RPC_URL,
+      accounts: [USER1_PRIVATE_KEY, USER2_PRIVATE_KEY],
+      chainId: 43113,
       saveDeployments: true,
     },
   },
   namedAccounts: {
     deployer: {
       default: 0,
+      1: 0,
     },
-    player: {
+    user1: {
       default: 1,
+      1: 1,
     },
   },
   mocha: {

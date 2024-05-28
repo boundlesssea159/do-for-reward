@@ -34,6 +34,7 @@ contract Tasks {
         uint64 selector;
     }
 
+    event TaskCreated(uint256 indexed index);
     event TaskApplied(uint256 indexed index, address account);
     event TransferSuccess(address account, uint256 amount);
     event MessageSent(bytes32 messageId);
@@ -107,6 +108,7 @@ contract Tasks {
         }
         tasks.push(_task);
         canBeAppliedNum++;
+        emit TaskCreated(tasks.length - 1);
     }
 
     function isTaskValid(task memory _task) internal pure returns (bool) {
@@ -185,11 +187,10 @@ contract Tasks {
             address(this).balance.getConversionRate(priceFeed) >= amount,
             "need more balance"
         );
-        (bool success, ) = address(account).call{
-            value: amount.getTokenAmountByUSD(priceFeed)
-        }("");
+        uint256 v = amount.getTokenAmountByUSD(priceFeed);
+        (bool success, ) = address(account).call{value: v}("");
         if (success) {
-            emit TransferSuccess(account, msg.value);
+            emit TransferSuccess(account, v);
             cleanTask(index);
         }
     }

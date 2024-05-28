@@ -20,7 +20,6 @@ contract Tasks {
     struct task {
         string name;
         string description;
-        uint256 deadline;
         uint256 reward; // USD
         Status status;
     }
@@ -89,7 +88,8 @@ contract Tasks {
     function hasContractAddressOfChain(
         uint256 chainId
     ) public view returns (bool) {
-        return chainToContractAndSelector[chainId].contractAddress != address(0);
+        return
+            chainToContractAndSelector[chainId].contractAddress != address(0);
     }
 
     function hasSelectorOfChain(
@@ -109,11 +109,10 @@ contract Tasks {
         canBeAppliedNum++;
     }
 
-    function isTaskValid(task memory _task) internal view returns (bool) {
+    function isTaskValid(task memory _task) internal pure returns (bool) {
         return
             bytes(_task.name).length > 0 &&
             bytes(_task.description).length > 0 &&
-            _task.deadline > uint256(block.timestamp) * 1000 &&
             _task.reward > 0 &&
             _task.status == Status.Created;
     }
@@ -148,7 +147,7 @@ contract Tasks {
         return (showAbleTasks, indexs);
     }
 
-    function applyTask(uint256 index, uint256 chainId) public {
+    function applyTask(uint256 chainId, uint256 index) public {
         taskShouldBeExist(index);
         if (tasks[index].status != Status.Created) {
             revert TaskHasBeenApplied(index);
@@ -212,7 +211,9 @@ contract Tasks {
     ) internal view returns (Client.EVM2AnyMessage memory) {
         return
             Client.EVM2AnyMessage({
-                receiver: abi.encode(chainToContractAndSelector[chainId].contractAddress),
+                receiver: abi.encode(
+                    chainToContractAndSelector[chainId].contractAddress
+                ),
                 data: abi.encode(msg.sender, tasks[taskIndex].reward * 1e18),
                 tokenAmounts: new Client.EVMTokenAmount[](0),
                 extraArgs: Client._argsToBytes(
@@ -226,7 +227,10 @@ contract Tasks {
         uint256 chainId,
         Client.EVM2AnyMessage memory message
     ) internal view {
-        uint256 fees = router.getFee(chainToContractAndSelector[chainId].selector, message);
+        uint256 fees = router.getFee(
+            chainToContractAndSelector[chainId].selector,
+            message
+        );
         if (fees > linkToken.balanceOf(address(this)))
             revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
     }

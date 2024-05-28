@@ -11,8 +11,8 @@ function getTimestamp() {
 
 !developmentChains.includes(network.name)
   ? describe.skip
-  : describe("TaskList", () => {
-      let task, singers, taskList, chainId;
+  : describe("Tasks", () => {
+      let task, singers, tasks, chainId;
       beforeEach(async () => {
         await deployments.fixture(["all"]);
         singers = await ethers.getSigners();
@@ -23,8 +23,8 @@ function getTimestamp() {
           reward: 1500,
           status: 0,
         };
-        const deployInfo = await deployments.get("TaskList");
-        taskList = await ethers.getContractAt(
+        const deployInfo = await deployments.get("Tasks");
+        tasks = await ethers.getContractAt(
           deployInfo.abi,
           deployInfo.address
         );
@@ -33,9 +33,9 @@ function getTimestamp() {
 
       describe("add task", () => {
         it("should add task by deployer", async () => {
-          const addTaskResponse = await taskList.addTask(task);
+          const addTaskResponse = await tasks.addTask(task);
           await addTaskResponse.wait(1);
-          const size = await taskList.numOfTasks();
+          const size = await tasks.numOfTasks();
           assert.equal(size, 1);
         });
 
@@ -43,14 +43,14 @@ function getTimestamp() {
           // name is empty
           let taskWithOutName = { ...task };
           taskWithOutName.name = "";
-          await expect(taskList.addTask(taskWithOutName)).to.be.rejectedWith(
+          await expect(tasks.addTask(taskWithOutName)).to.be.rejectedWith(
             "TaskInvalid"
           );
           // description is empty
           let taskWithOutDescription = { ...task };
           taskWithOutDescription.description = "";
           await expect(
-            taskList.addTask(taskWithOutDescription)
+            tasks.addTask(taskWithOutDescription)
           ).to.be.rejectedWith("TaskInvalid");
           // deadline is in the past
           let taskWithInvalidDeadline = { ...task };
@@ -58,52 +58,52 @@ function getTimestamp() {
           var newDate = date.setDate(date.getDate() - 1);
           taskWithInvalidDeadline.deadline = new Date(newDate).getTime();
           await expect(
-            taskList.addTask(taskWithInvalidDeadline)
+            tasks.addTask(taskWithInvalidDeadline)
           ).to.be.rejectedWith("TaskInvalid");
           // reward is no more than zero
           let taskWithInvalidReward = { ...task };
           taskWithInvalidReward.reward = 0;
           await expect(
-            taskList.addTask(taskWithInvalidReward)
+            tasks.addTask(taskWithInvalidReward)
           ).to.be.rejectedWith("TaskInvalid");
           // status is not created
           let taskWithNonCreatedStatus = { ...task };
           taskWithNonCreatedStatus.status = 1;
           await expect(
-            taskList.addTask(taskWithNonCreatedStatus)
+            tasks.addTask(taskWithNonCreatedStatus)
           ).to.be.rejectedWith("TaskInvalid");
         });
 
         it("should revert if task isn't added  by deployer", async () => {
-          const newTaskList = taskList.connect(singers[1]);
+          const newTaskList = tasks.connect(singers[1]);
           await expect(newTaskList.addTask(task)).to.be.rejectedWith();
         });
 
         it("should fail to add the same task more than once", async () => {
-          const addTaskResponse = await taskList.addTask(task);
+          const addTaskResponse = await tasks.addTask(task);
           await addTaskResponse.wait(1);
-          await expect(taskList.addTask(task)).to.be.rejectedWith(
+          await expect(tasks.addTask(task)).to.be.rejectedWith(
             "TaskAlreadyExists"
           );
         });
 
         describe("show tasks", async () => {
           it("should show tasks with created status", async () => {
-            const addTaskResponse = await taskList.addTask(task);
+            const addTaskResponse = await tasks.addTask(task);
             await addTaskResponse.wait(1);
-            const [, indexs] = await taskList.showTasks();
+            const [, indexs] = await tasks.showTasks();
             assert.equal(indexs.length, 1);
             assert.equal(indexs[0], 0);
             // add task with non created status
             const taskWithNonCreatedStatus = task;
             taskWithNonCreatedStatus.name = "second task";
-            const addAnotherTaskResponse = await taskList.addTask(
+            const addAnotherTaskResponse = await tasks.addTask(
               taskWithNonCreatedStatus
             );
             await addAnotherTaskResponse.wait(1);
-            const response = await taskList.applyTask(indexs[0], chainId);
+            const response = await tasks.applyTask(indexs[0], chainId);
             response.wait(1);
-            const [, newIndexs] = await taskList.showTasks();
+            const [, newIndexs] = await tasks.showTasks();
             assert.equal(newIndexs.length, 1);
             assert.equal(newIndexs[0], 1);
           });
@@ -111,27 +111,27 @@ function getTimestamp() {
 
         describe("apply task", () => {
           it("should apply task", async () => {
-            const addTaskResponse = await taskList.addTask(task);
+            const addTaskResponse = await tasks.addTask(task);
             await addTaskResponse.wait(1);
-            const response = await taskList.applyTask(0, chainId);
+            const response = await tasks.applyTask(0, chainId);
             await response.wait(1);
-            expect(response).to.emit(taskList, "TaskApplied");
+            expect(response).to.emit(tasks, "TaskApplied");
           });
           it("should revert if task not exist", async () => {
-            await expect(taskList.applyTask(0, chainId)).to.be.rejectedWith(
+            await expect(tasks.applyTask(0, chainId)).to.be.rejectedWith(
               "TaskNotExist"
             );
           });
 
           it("should revert if task has been applied", async () => {
-            const addTaskResponse = await taskList.addTask(task);
+            const addTaskResponse = await tasks.addTask(task);
             await addTaskResponse.wait(1);
             // first one gets task successfully
-            const response = await taskList.applyTask(0, chainId);
+            const response = await tasks.applyTask(0, chainId);
             await response.wait(1);
-            expect(response).to.emit(taskList, "TaskApplied");
+            expect(response).to.emit(tasks, "TaskApplied");
             // seconde one gets task unsuccessfully
-            await expect(taskList.applyTask(0, chainId)).to.be.rejectedWith(
+            await expect(tasks.applyTask(0, chainId)).to.be.rejectedWith(
               "TaskHasBeenApplied"
             );
           });
@@ -142,44 +142,44 @@ function getTimestamp() {
         beforeEach(async () => {
           const deployer = singers[0];
           const tx = await deployer.sendTransaction({
-            to: taskList.target,
+            to: tasks.target,
             value: ethers.parseEther("2.0"),
           });
           await tx.wait();
         });
 
         it("should revert if sender is not deployer", async () => {
-          const addTaskResponse = await taskList.addTask(task);
+          const addTaskResponse = await tasks.addTask(task);
           await addTaskResponse.wait(1);
-          const newTaskList = taskList.connect(singers[1]);
+          const newTaskList = tasks.connect(singers[1]);
           await expect(newTaskList.markDone(0)).to.be.rejectedWith();
         });
 
         it("should revert if task is not exist", async () => {
-          await expect(taskList.markDone(0)).to.be.rejectedWith("TaskNotExist");
+          await expect(tasks.markDone(0)).to.be.rejectedWith("TaskNotExist");
         });
 
         it("should revert if task status is not execute", async () => {
-          const addTaskResponse = await taskList.addTask(task);
+          const addTaskResponse = await tasks.addTask(task);
           await addTaskResponse.wait(1);
-          const [, indexs] = await taskList.showTasks();
-          await expect(taskList.markDone(indexs[0])).to.be.revertedWith(
+          const [, indexs] = await tasks.showTasks();
+          await expect(tasks.markDone(indexs[0])).to.be.revertedWith(
             "task doesn't execute"
           );
-          const applyResonse = await taskList.applyTask(indexs[0], chainId);
+          const applyResonse = await tasks.applyTask(indexs[0], chainId);
           await applyResonse.wait(1);
-          const response = await taskList.markDone(indexs[0]);
+          const response = await tasks.markDone(indexs[0]);
           await response.wait(1);
-          await expect(taskList.markDone(indexs[0])).to.be.revertedWith(
+          await expect(tasks.markDone(indexs[0])).to.be.revertedWith(
             "task doesn't execute"
           );
         });
 
         it("should transfer token to someone when task is finished", async () => {
           // deployer add task
-          const addTaskResponse = await taskList.addTask(task);
+          const addTaskResponse = await tasks.addTask(task);
           await addTaskResponse.wait(1);
-          const [, indexs] = await taskList.showTasks();
+          const [, indexs] = await tasks.showTasks();
           assert.equal(indexs.length, 1);
           // someone else apply it
           const applier = singers[1];
@@ -187,14 +187,14 @@ function getTimestamp() {
             applier.address
           );
           console.log("before balance:", beforeBalance);
-          const taskForApplying = taskList.connect(applier);
+          const taskForApplying = tasks.connect(applier);
           const applyResonse = await taskForApplying.applyTask(
             indexs[0],
             chainId
           );
           await applyResonse.wait(1);
           // deployer transfer token to the one who apply and finish the task.
-          const taskForMarkingDone = taskList.connect(singers[0]);
+          const taskForMarkingDone = tasks.connect(singers[0]);
           const markDoneResponse = await taskForMarkingDone.markDone(indexs[0]);
           await markDoneResponse.wait(1);
           // assert someone account balance has increased
@@ -206,7 +206,7 @@ function getTimestamp() {
             taskForMarkingDone,
             "TransferSuccess"
           );
-          const [, newIndexs] = await taskList.showTasks();
+          const [, newIndexs] = await tasks.showTasks();
           assert.equal(newIndexs.length, 0);
           console.log("after balance:", afterBalance);
         });
@@ -219,18 +219,18 @@ function getTimestamp() {
         });
 
         it("should add destination contract and selector", async () => {
-          const response = await taskList.addDestinationContractAndSelector(
+          const response = await tasks.addDestinationContractAndSelector(
             chainId,
             rewardReceiverInfo.address,
             "14767482510784806043"
           );
           await response.wait(1);
-          assert.equal(await taskList.hasContractAddressOfChain(chainId), true);
-          assert.equal(await taskList.hasSelectorOfChain(chainId), true);
+          assert.equal(await tasks.hasContractAddressOfChain(chainId), true);
+          assert.equal(await tasks.hasSelectorOfChain(chainId), true);
         });
 
         it("should only be called by deployer", async () => {
-          const newTaskList = taskList.connect(singers[1]);
+          const newTaskList = tasks.connect(singers[1]);
           await expect(
             newTaskList.addDestinationContractAndSelector(
               chainId,

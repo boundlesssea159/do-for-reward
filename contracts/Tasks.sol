@@ -9,7 +9,7 @@ import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-sol
 import {PriceConverter} from "./PriceConverter.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-contract TaskList {
+contract Tasks {
     using PriceConverter for uint256;
 
     enum Status {

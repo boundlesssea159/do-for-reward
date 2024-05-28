@@ -17,11 +17,11 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     link = networkConfig[network.name].link;
     priceFeed = networkConfig[network.name].priceFeed;
   }
-  await deploy("TaskList", {
+  await deploy("Tasks", {
     from: deployer,
     log: true,
     args: [router, link, v3AggregatorAddress],
   });
 };
 
-module.exports.tags = ["all", "task"];
+module.exports.tags = ["all", "tasks"];

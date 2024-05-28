@@ -3,23 +3,23 @@ const { developmentChains, networkConfig } = require("../config.helper.js");
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
-  const deployer = (await getNamedAccounts()).deployer;
-
-  let router, price;
+  const { deployer } = await getNamedAccounts();
+  let router, priceFeed;
   if (developmentChains.includes(network.name)) {
-    const mockV3AggregatorInfo = await deployments.get("MockV3Aggregator");
-    price = mockV3AggregatorInfo.address;
     const mockRouterInfo = await deployments.get("MockCCIPRouter");
     router = mockRouterInfo.address;
+    const mockV3AggregatorInfo = await deployments.get("MockV3Aggregator");
+    priceFeed = mockV3AggregatorInfo.address;
   } else {
-    price = networkConfig[network.name].priceFeed;
     router = networkConfig[network.name].router;
+    priceFeed = networkConfig[network.name].priceFeed;
   }
   await deploy("RewardReceiver", {
     from: deployer,
     log: true,
-    args: [router, price],
+    args: [router, priceFeed],
   });
+  console.log("dfdf2");
 };
 
 module.exports.tags = ["all", "recevier"];

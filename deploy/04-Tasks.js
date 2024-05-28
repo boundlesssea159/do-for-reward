@@ -4,14 +4,14 @@ const { developmentChains, networkConfig } = require("../config.helper.js");
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
   const deployer = (await getNamedAccounts()).deployer;
-  let router, link, v3AggregatorAddress;
+  let router, link, priceFeed;
   if (developmentChains.includes(network.name)) {
-    const mockV3AggregatorInfo = await deployments.get("MockV3Aggregator");
-    v3AggregatorAddress = mockV3AggregatorInfo.address;
     const mockRouterInfo = await deployments.get("MockCCIPRouter");
     router = mockRouterInfo.address;
     const mockLinkTokenInfo = await deployments.get("MockLinkToken");
     link = mockLinkTokenInfo.address;
+    const mockV3AggregatorInfo = await deployments.get("MockV3Aggregator");
+    priceFeed = mockV3AggregatorInfo.address;
   } else {
     router = networkConfig[network.name].router;
     link = networkConfig[network.name].link;
@@ -20,7 +20,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   await deploy("Tasks", {
     from: deployer,
     log: true,
-    args: [router, link, v3AggregatorAddress],
+    args: [router, link, priceFeed],
   });
 };
 

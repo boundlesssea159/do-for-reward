@@ -4,7 +4,7 @@ require("dotenv").config();
 require("solidity-coverage");
 require("hardhat-gas-reporter");
 
-const API_KEY = process.env.API_KEY;
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 module.exports = {
@@ -13,7 +13,7 @@ module.exports = {
   networks: {
     hardhat: {},
     sepolia: {
-      url: "https://eth-sepolia.g.alchemy.com/v2/" + API_KEY,
+      url: SEPOLIA_RPC_URL,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
       chainId: 11155111,
       saveDeployments: true,
@@ -21,8 +21,7 @@ module.exports = {
   },
   namedAccounts: {
     deployer: {
-      default: 0, // here this will by default take the first account as deployer
-      1: 0, // similarly on mainnet it will take the first account as deployer. Note though that depending on how hardhat network are configured, the account 0 on one network can be different than on another
+      default: 0,
     },
     player: {
       default: 1,

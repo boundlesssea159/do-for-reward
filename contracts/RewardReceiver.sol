@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-import "hardhat/console.sol";
 import {PriceConverter} from "./PriceConverter.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
@@ -33,10 +32,8 @@ contract RewardReceiver is CCIPReceiver {
         uint256 tokenAmount = amount.getTokenAmountByUSD(priceFeed);
         (bool success, ) = to.call{value: tokenAmount}("");
         if (!success) {
-            console.log("recevied failed:", to, tokenAmount);
             revert ReceivedFailed(to, tokenAmount);
         }
-        console.log("received:", to, tokenAmount);
         emit Received(to, tokenAmount);
     }
 

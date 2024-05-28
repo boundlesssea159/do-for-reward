@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
@@ -167,7 +166,6 @@ contract Tasks {
     }
 
     function markDone(uint256 index) public payable onlyOwner {
-        console.log("balance:", address(this).balance);
         taskShouldBeExist(index);
         require(
             tasks[index].status != Status.Created &&
@@ -175,9 +173,6 @@ contract Tasks {
             "task doesn't execute"
         );
         applierInfomation memory applier = taskToAccount[index];
-        // transfert to same link
-        console.log("chain id:", block.chainid);
-        console.log("destination chain id:", applier.chainId);
         if (applier.chainId == block.chainid) {
             sendRewardOnLocalChain(applier.account, index);
         } else {
@@ -187,26 +182,17 @@ contract Tasks {
 
     function sendRewardOnLocalChain(address account, uint256 index) internal {
         uint256 amount = tasks[index].reward * 1e18;
-        console.log(
-            "sendReward amount:",
-            amount,
-            address(this).balance.getConversionRate(priceFeed),
-            amount.getTokenAmountByUSD(priceFeed)
-        );
         require(
             address(this).balance.getConversionRate(priceFeed) >= amount,
             "need more balance"
         );
-        console.log("require check");
         (bool success, ) = address(account).call{
             value: amount.getTokenAmountByUSD(priceFeed)
         }("");
-        console.log("send success:", success);
         if (success) {
             emit TransferSuccess(account, msg.value);
             cleanTask(index);
         }
-        console.log("transfer result:", success, tasks[index].reward);
     }
 
     function sendRewardByCCIP(uint256 chainId, uint256 index) internal {
@@ -218,7 +204,6 @@ contract Tasks {
         );
         emit MessageSent(messageId);
         cleanTask(index);
-        console.log("ccip sent");
     }
 
     function buildCCIPMsg(

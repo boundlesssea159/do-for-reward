@@ -1,21 +1,25 @@
-const { networkConfig } = require("../config.helper.js");
 const { network } = require("hardhat");
-const { developmentChains } = require("../config.helper");
+const { developmentChains, networkConfig } = require("../config.helper.js");
 
-if (developmentChains.includes(network.name)) {
-  module.exports = async ({ getNamedAccounts, deployments }) => {
-    const { deploy, log } = deployments;
-    const deployer = (await getNamedAccounts()).deployer;
+module.exports = async ({ getNamedAccounts, deployments }) => {
+  const { deploy, log } = deployments;
+  const deployer = (await getNamedAccounts()).deployer;
+
+  let router, price;
+  if (developmentChains.includes(network.name)) {
     const mockV3AggregatorInfo = await deployments.get("MockV3Aggregator");
-    const v3AggregatorAddress = mockV3AggregatorInfo.address;
+    price = mockV3AggregatorInfo.address;
     const mockRouterInfo = await deployments.get("MockCCIPRouter");
-    const router = mockRouterInfo.address;
-    await deploy("RewardReceiver", {
-      from: deployer,
-      log: true,
-      args: [router, v3AggregatorAddress],
-    });
-  };
+    router = mockRouterInfo.address;
+  } else {
+    price = networkConfig[network.name].priceFeed;
+    router = networkConfig[network.name].router;
+  }
+  await deploy("RewardReceiver", {
+    from: deployer,
+    log: true,
+    args: [router, price],
+  });
+};
 
-  module.exports.tags = ["all", "recevier"];
-}
+module.exports.tags = ["all", "recevier"];

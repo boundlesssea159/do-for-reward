@@ -31,6 +31,11 @@ contract TaskList {
         uint256 chainId;
     }
 
+    struct chainContractAndSelector {
+        address contractAddress;
+        uint64 selector;
+    }
+
     event TaskApplied(uint256 indexed index, address account);
     event TransferSuccess(address account, uint256 amount);
     event MessageSent(bytes32 messageId);
@@ -54,8 +59,8 @@ contract TaskList {
     AggregatorV3Interface private priceFeed;
 
     mapping(uint256 => applierInfomation) private taskToAccount;
-    mapping(uint256 => address) private destinationContractAddress;
-    mapping(uint256 => uint64) private destinationSelector;
+    mapping(uint256 => chainContractAndSelector)
+        private chainToContractAndSelector;
 
     constructor(address _router, address _link, address _priceFeedAddress) {
         owner = msg.sender;
@@ -71,30 +76,27 @@ contract TaskList {
 
     receive() external payable {}
 
-    function addDestinationContractAddress(
+    function addDestinationContractAndSelector(
         uint256 chainId,
-        address contractAddress
+        address contractAddress,
+        uint64 selector
     ) public onlyOwner {
-        destinationContractAddress[chainId] = contractAddress;
+        chainToContractAndSelector[chainId] = chainContractAndSelector(
+            contractAddress,
+            selector
+        );
     }
 
     function hasContractAddressOfChain(
         uint256 chainId
     ) public view returns (bool) {
-        return destinationContractAddress[chainId] != address(0);
-    }
-
-    function addDestinationSelector(
-        uint256 chainId,
-        uint64 selector
-    ) public onlyOwner {
-        destinationSelector[chainId] = selector;
+        return chainToContractAndSelector[chainId].contractAddress != address(0);
     }
 
     function hasSelectorOfChain(
         uint256 chainId
     ) public view onlyOwner returns (bool) {
-        return destinationSelector[chainId] > 0;
+        return chainToContractAndSelector[chainId].selector > 0;
     }
 
     function addTask(task memory _task) public onlyOwner {
@@ -185,7 +187,12 @@ contract TaskList {
 
     function sendRewardOnLocalChain(address account, uint256 index) internal {
         uint256 amount = tasks[index].reward * 1e18;
-        console.log("sendReward amount:",amount,address(this).balance.getConversionRate(priceFeed),amount.getTokenAmountByUSD(priceFeed));
+        console.log(
+            "sendReward amount:",
+            amount,
+            address(this).balance.getConversionRate(priceFeed),
+            amount.getTokenAmountByUSD(priceFeed)
+        );
         require(
             address(this).balance.getConversionRate(priceFeed) >= amount,
             "need more balance"
@@ -194,7 +201,7 @@ contract TaskList {
         (bool success, ) = address(account).call{
             value: amount.getTokenAmountByUSD(priceFeed)
         }("");
-        console.log("send success:",success);
+        console.log("send success:", success);
         if (success) {
             emit TransferSuccess(account, msg.value);
             cleanTask(index);
@@ -206,7 +213,7 @@ contract TaskList {
         Client.EVM2AnyMessage memory message = buildCCIPMsg(chainId, index);
         balanceShouldMoreThanFee(chainId, message);
         bytes32 messageId = router.ccipSend(
-            destinationSelector[chainId],
+            chainToContractAndSelector[chainId].selector,
             message
         );
         emit MessageSent(messageId);
@@ -220,7 +227,7 @@ contract TaskList {
     ) internal view returns (Client.EVM2AnyMessage memory) {
         return
             Client.EVM2AnyMessage({
-                receiver: abi.encode(destinationContractAddress[chainId]),
+                receiver: abi.encode(chainToContractAndSelector[chainId].contractAddress),
                 data: abi.encode(msg.sender, tasks[taskIndex].reward * 1e18),
                 tokenAmounts: new Client.EVMTokenAmount[](0),
                 extraArgs: Client._argsToBytes(
@@ -234,7 +241,7 @@ contract TaskList {
         uint256 chainId,
         Client.EVM2AnyMessage memory message
     ) internal view {
-        uint256 fees = router.getFee(destinationSelector[chainId], message);
+        uint256 fees = router.getFee(chainToContractAndSelector[chainId].selector, message);
         if (fees > linkToken.balanceOf(address(this)))
             revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
     }

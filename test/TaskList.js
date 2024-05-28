@@ -3,8 +3,10 @@ const { log } = require("console");
 const { deployments, ethers } = require("hardhat");
 const { describe } = require("node:test");
 
-function getTimestamp(year, month, day) {
-  return new Date(year, month - 1, day).getTime();
+function getTimestamp() {
+  var date = new Date();
+  var newDate = date.setDate(date.getDate() + 10);
+  return new Date(newDate).getTime();
 }
 
 describe("TaskList", () => {
@@ -15,7 +17,7 @@ describe("TaskList", () => {
     task = {
       name: "Task",
       description: "A task for unit test",
-      deadline: getTimestamp(2024, 5, 28).toString(),
+      deadline: getTimestamp().toString(),
       reward: 1500,
       status: 0,
     };
@@ -47,7 +49,9 @@ describe("TaskList", () => {
       );
       // deadline is in the past
       let taskWithInvalidDeadline = { ...task };
-      taskWithInvalidDeadline.deadline = getTimestamp(2024, 5, 21);
+      var date = new Date();
+      var newDate = date.setDate(date.getDate() - 1);
+      taskWithInvalidDeadline.deadline = new Date(newDate).getTime();
       await expect(
         taskList.addTask(taskWithInvalidDeadline)
       ).to.be.rejectedWith("TaskInvalid");
@@ -196,45 +200,31 @@ describe("TaskList", () => {
     });
   });
 
-  describe("add destination contract address", () => {
+  describe("add destination contract and selector", () => {
     let rewardReceiverInfo;
     beforeEach(async () => {
       rewardReceiverInfo = await deployments.get("RewardReceiver");
     });
-    it("should add destination contract address", async () => {
-      const addChainContractAdrressResponse =
-        await taskList.addDestinationContractAddress(
-          chainId,
-          rewardReceiverInfo.address
-        );
-      await addChainContractAdrressResponse.wait(1);
-      const exist = await taskList.hasContractAddressOfChain(chainId);
-      assert.equal(exist, true);
+
+    it("should add destination contract and selector", async () => {
+      const response = await taskList.addDestinationContractAndSelector(
+        chainId,
+        rewardReceiverInfo.address,
+        "14767482510784806043"
+      );
+      await response.wait(1);
+      assert.equal(await taskList.hasContractAddressOfChain(chainId), true);
+      assert.equal(await taskList.hasSelectorOfChain(chainId), true);
     });
+
     it("should only be called by deployer", async () => {
       const newTaskList = taskList.connect(singers[1]);
       await expect(
-        newTaskList.addDestinationContractAddress(
+        newTaskList.addDestinationContractAndSelector(
           chainId,
-          rewardReceiverInfo.address
+          rewardReceiverInfo.address,
+          "14767482510784806043"
         )
-      ).to.be.rejectedWith();
-    });
-  });
-
-  describe("add destination chain selector", () => {
-    it("should add destination chain selector", async () => {
-      const addDestinationSelectorResponse =
-        await taskList.addDestinationSelector(chainId, "14767482510784806043");
-      await addDestinationSelectorResponse.wait(1);
-      const exist = await taskList.hasSelectorOfChain(chainId);
-      assert.equal(exist, true);
-    });
-
-    it("should only be called by deployer on addDestinationSelector", async () => {
-      const newTaskList = taskList.connect(singers[1]);
-      await expect(
-        newTaskList.addDestinationSelector(chainId, "14767482510784806043")
       ).to.be.rejectedWith();
     });
   });

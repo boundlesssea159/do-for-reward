@@ -16,9 +16,9 @@ contract RewardReceiver is CCIPReceiver {
 
     constructor(
         address _router,
-        address _priceFeedAddress
+        address _priceFeed
     ) CCIPReceiver(_router) {
-        priceFeed = AggregatorV3Interface(_priceFeedAddress);
+        priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
     function _ccipReceive(

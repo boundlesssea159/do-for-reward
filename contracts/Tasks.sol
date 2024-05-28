@@ -62,11 +62,11 @@ contract Tasks {
     mapping(uint256 => chainContractAndSelector)
         private chainToContractAndSelector;
 
-    constructor(address _router, address _link, address _priceFeedAddress) {
+    constructor(address _router, address _link, address _priceFeed) {
         owner = msg.sender;
         router = IRouterClient(_router);
         linkToken = LinkTokenInterface(_link);
-        priceFeed = AggregatorV3Interface(_priceFeedAddress);
+        priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
     modifier onlyOwner() {

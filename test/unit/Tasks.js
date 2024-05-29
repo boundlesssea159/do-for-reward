@@ -3,13 +3,6 @@ const { log } = require("console");
 const { deployments, ethers, network } = require("hardhat");
 const { describe } = require("node:test");
 const { developmentChains } = require("../../config.helper.js");
-function getTimestamp() {
-  var date = new Date();
-  var newDate = date.setDate(date.getDate() + 10);
-  var time = new Date(newDate).getTime();
-  console.log("time:", time);
-  return time;
-}
 
 !developmentChains.includes(network.name)
   ? describe.skip

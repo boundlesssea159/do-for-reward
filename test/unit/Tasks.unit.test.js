@@ -62,14 +62,6 @@ const { developmentChains } = require("../../config.helper.js");
           await expect(newTaskList.addTask(task)).to.be.rejectedWith();
         });
 
-        it("should fail to add the same task more than once", async () => {
-          const addTaskResponse = await tasks.addTask(task);
-          await addTaskResponse.wait(1);
-          await expect(tasks.addTask(task)).to.be.rejectedWith(
-            "TaskAlreadyExists"
-          );
-        });
-
         describe("show tasks", async () => {
           it("should show tasks with created status", async () => {
             const addTaskResponse = await tasks.addTask(task);

@@ -103,9 +103,6 @@ contract Tasks {
         if (!isTaskValid(_task)) {
             revert TaskInvalid();
         }
-        if (existTask(_task.name)) {
-            revert TaskAlreadyExists(_task.name);
-        }
         tasks.push(_task);
         canBeAppliedNum++;
         emit TaskCreated(tasks.length - 1);
@@ -117,18 +114,6 @@ contract Tasks {
             bytes(_task.description).length > 0 &&
             _task.reward > 0 &&
             _task.status == Status.Created;
-    }
-
-    function existTask(string memory name) internal view returns (bool) {
-        for (uint256 i = 0; i < tasks.length; i++) {
-            if (
-                keccak256(abi.encodePacked(tasks[i].name)) ==
-                keccak256(abi.encodePacked(name))
-            ) {
-                return true;
-            }
-        }
-        return false;
     }
 
     function numOfTasks() public view returns (uint256) {

@@ -169,15 +169,14 @@ contract Tasks {
     function markDone(uint256 index) public payable onlyOwner {
         taskShouldBeExist(index);
         require(
-            tasks[index].status != Status.Created &&
-                tasks[index].status != Status.Finished,
-            "task doesn't execute"
+            tasks[index].status == Status.Executing,
+            "task status should be executing"
         );
         applierInfomation memory applier = taskToAccount[index];
         if (applier.chainId == block.chainid) {
             sendRewardOnLocalChain(applier.account, index);
         } else {
-            sendRewardByCCIP(applier.chainId, index);
+            sendRewardByCCIP(applier.chainId, applier.account, index);
         }
     }
 
@@ -195,8 +194,16 @@ contract Tasks {
         }
     }
 
-    function sendRewardByCCIP(uint256 chainId, uint256 index) internal {
-        Client.EVM2AnyMessage memory message = buildCCIPMsg(chainId, index);
+    function sendRewardByCCIP(
+        uint256 chainId,
+        address account,
+        uint256 index
+    ) internal {
+        Client.EVM2AnyMessage memory message = buildCCIPMsg(
+            chainId,
+            account,
+            index
+        );
         balanceShouldMoreThanFee(chainId, message);
         bytes32 messageId = router.ccipSend(
             chainToContractAndSelector[chainId].selector,
@@ -208,6 +215,7 @@ contract Tasks {
 
     function buildCCIPMsg(
         uint256 chainId,
+        address account,
         uint256 taskIndex
     ) internal view returns (Client.EVM2AnyMessage memory) {
         return
@@ -215,7 +223,7 @@ contract Tasks {
                 receiver: abi.encode(
                     chainToContractAndSelector[chainId].contractAddress
                 ),
-                data: abi.encode(msg.sender, tasks[taskIndex].reward * 1e18),
+                data: abi.encode(account, tasks[taskIndex].reward * 1e18),
                 tokenAmounts: new Client.EVMTokenAmount[](0),
                 extraArgs: Client._argsToBytes(
                     Client.EVMExtraArgsV1({gasLimit: 980_000})

@@ -19,9 +19,9 @@ function getTimestamp() {
         await deployments.fixture(["all"]);
         singers = await ethers.getSigners();
         task = {
-          name: "Do It",
+          name: "math",
           description: "homework",
-          reward: 10,
+          reward: 5,
           status: 0,
         };
         const deployInfo = await deployments.get("Tasks");
@@ -154,14 +154,14 @@ function getTimestamp() {
           await addTaskResponse.wait(1);
           const [, indexs] = await tasks.showTasks();
           await expect(tasks.markDone(indexs[0])).to.be.revertedWith(
-            "task doesn't execute"
+           "task status should be executing"
           );
           const applyResonse = await tasks.applyTask(chainId,indexs[0]);
           await applyResonse.wait(1);
           const response = await tasks.markDone(indexs[0]);
           await response.wait(1);
           await expect(tasks.markDone(indexs[0])).to.be.revertedWith(
-            "task doesn't execute"
+            "task status should be executing"
           );
         });
 

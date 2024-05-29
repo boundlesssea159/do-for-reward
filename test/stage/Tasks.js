@@ -1,25 +1,35 @@
 const { deployments, getNamedAccounts, network, ethers } = require("hardhat");
 const { networkConfig, developmentChains } = require("../../config.helper");
-const { task } = require("hardhat/config");
 const { assert } = require("chai");
 
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const FUJI_RPC_URL = process.env.FUJI_RPC_URL;
+const USER1_PRIVATE_KEY = process.env.USER1_PRIVATE_KEY;
+const USER2_PRIVATE_KEY = process.env.USER2_PRIVATE_KEY;
 
-// todo compiler version should be no more than 8.19
 developmentChains.includes(network.name)
   ? describe.skip
   : describe("tasks", () => {
       it("should transfer token from one chain to another chain when task is done", async () => {
         const { deploy } = deployments;
-        const { deployer, user1 } = await getNamedAccounts();
-        ethers.provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
-        const deployerSingerForSepolia = await ethers.getSigner(deployer);
-        const user1SingerForSepolia = await ethers.getSigner(user1);
+        const deployer = USER1_PRIVATE_KEY;
+        const user1 = USER2_PRIVATE_KEY;
+        // sepolia provider and singer
+        const sepoliaProvider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
+        const deployerSingerForSepolia = new ethers.Wallet(
+          deployer,
+          sepoliaProvider
+        );
+        const user1SingerForSepolia = new ethers.Wallet(user1, sepoliaProvider);
+        // fuji provider and signer
+        const fujiProvider = new ethers.JsonRpcProvider(FUJI_RPC_URL);
+        const deployerSingerForFuji = new ethers.Wallet(deployer, fujiProvider);
+        const user1SingerForFuji = new ethers.Wallet(user1, fujiProvider);
         // get balance of user1 on Sepolia
-        const beforeBalance = await ethers.provider.getBalance(
+        const beforeBalance = await sepoliaProvider.getBalance(
           user1SingerForSepolia.address
         );
+        console.log("user1 before balance:", beforeBalance);
         // deployer deploy recevier contract on Sepolia
         await deploy("RewardReceiver", {
           from: deployerSingerForSepolia.address,
@@ -33,9 +43,6 @@ developmentChains.includes(network.name)
           deployerSingerForSepolia
         );
         // deployer deploy tasks contract on FUJI
-        ethers.provider = new ethers.JsonRpcProvider(FUJI_RPC_URL);
-        const deployerSingerForFuji = await ethers.getSigner(deployer);
-        const user1SingerForFuji = await ethers.getSigner(user1);
         await deploy("Tasks", {
           from: deployerSingerForFuji.address,
           log: true,
@@ -52,7 +59,7 @@ developmentChains.includes(network.name)
           taskDeployInfo.address,
           deployerSingerForFuji
         );
-       
+
         const addTaskResponse = await tasks.addTask({
           name: "math",
           description: "homework",
@@ -80,10 +87,10 @@ developmentChains.includes(network.name)
             const markDoneResponse = await tasks.markDone(indexs[0]);
             await markDoneResponse.wait(6);
             // user1 balance should increase
-            ethers.provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
-            const afterBalance = await ethers.provider.getBalance(
+            const afterBalance = await sepoliaProvider.getBalance(
               user1SingerForSepolia.address
             );
+            console.log("user1 after balance:", afterBalance);
             assert.isAbove(afterBalance, beforeBalance);
             resolve();
           });

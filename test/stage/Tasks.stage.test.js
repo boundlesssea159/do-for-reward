@@ -11,6 +11,10 @@ const linkTokenAbi = [
   "function transfer(address to, uint256 value) public returns (bool)",
 ];
 
+// todo compiler version is 0.8.5
+// todo receiver 0x1BF059Fc706300E175d8c621dfbE1dF650240635
+// todo tasks 0x1BF059Fc706300E175d8c621dfbE1dF650240635
+
 developmentChains.includes(network.name)
   ? describe.skip
   : describe("tasks", () => {

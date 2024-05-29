@@ -45,7 +45,7 @@ contract Tasks {
     error TaskHasBeenApplied(uint256 index);
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees);
 
-    address private owner;
+    address public owner;
 
     task[] private tasks;
 
@@ -238,5 +238,10 @@ contract Tasks {
         uint256 amount = linkToken.balanceOf(address(this));
         require(amount > 0, "no balance to withdraw");
         linkToken.transfer(beneficiary, amount);
+    }
+
+    function withdraw() public onlyOwner {
+        (bool success,) = payable(owner).call{value: address(this).balance}("");
+        require(success,"withdraw fail");
     }
 }

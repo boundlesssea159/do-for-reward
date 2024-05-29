@@ -9,15 +9,20 @@ contract RewardReceiver is CCIPReceiver {
     using PriceConverter for uint256;
 
     AggregatorV3Interface private priceFeed;
+    address public owner;
 
     event Received(address to, uint256 amount);
+
     error ReceivedFailed(address to, uint256 amount);
 
-    constructor(
-        address _router,
-        address _priceFeed
-    ) CCIPReceiver(_router) {
+    constructor(address _router, address _priceFeed) CCIPReceiver(_router) {
         priceFeed = AggregatorV3Interface(_priceFeed);
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "only owner can call this function.");
+        _;
     }
 
     function _ccipReceive(
@@ -42,5 +47,9 @@ contract RewardReceiver is CCIPReceiver {
             address(this).balance.getConversionRate(priceFeed) >= amount,
             "need more balance"
         );
+    }
+
+    function withdraw() public onlyOwner {
+        payable(owner).transfer(address(this).balance);
     }
 }

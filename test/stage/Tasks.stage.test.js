@@ -6,6 +6,10 @@ const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const FUJI_RPC_URL = process.env.FUJI_RPC_URL;
 const USER1_PRIVATE_KEY = process.env.USER1_PRIVATE_KEY;
 const USER2_PRIVATE_KEY = process.env.USER2_PRIVATE_KEY;
+const linkTokenAbi = [
+  // Minimal ABI for ERC20 token
+  "function transfer(address to, uint256 value) public returns (bool)",
+];
 
 developmentChains.includes(network.name)
   ? describe.skip
@@ -59,7 +63,6 @@ developmentChains.includes(network.name)
           taskDeployInfo.address,
           deployerSingerForFuji
         );
-
         const addTaskResponse = await tasks.addTask({
           // ["math","homework",5,0]
           name: "math",
@@ -76,6 +79,17 @@ developmentChains.includes(network.name)
           "16015286601757825753" // to sepolia.  from seploia to fuji is 14767482510784806043
         );
         await response.wait(5);
+        // transfer some Link token to the contract to pay for the CCIP
+        const linkTokenContract = await ethers.getContractAt(
+          linkTokenAbi,
+          networkConfig.fuji.link,
+          deployerSingerForFuji
+        );
+        const linkTokenContractResponse = await linkTokenContract.transfer(
+          taskDeployInfo.address,
+          ethers.parseUnits("1", 18)
+        );
+        await linkTokenContractResponse.wait(5);
         // user1 apply task
         const taskForUser = await tasks.connect(user1SingerForFuji);
         const [, indexs] = await taskForUser.showTasks();
@@ -85,7 +99,6 @@ developmentChains.includes(network.name)
           indexs[0]
         );
         await applyTaskResponse.wait(5);
-
         await new Promise(async (resolve, reject) => {
           // deployer mark the task done
           receiver.once("Received", async (to, tokenAmount) => {

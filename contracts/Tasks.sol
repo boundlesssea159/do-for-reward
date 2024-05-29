@@ -248,4 +248,10 @@ contract Tasks {
         tasks[taskIndex].status = Status.Finished;
         delete taskToAccount[taskIndex];
     }
+
+    function withdrawLINK(address beneficiary) public onlyOwner {
+        uint256 amount = linkToken.balanceOf(address(this));
+        require(amount > 0, "no balance to withdraw");
+        linkToken.transfer(beneficiary, amount);
+    }
 }

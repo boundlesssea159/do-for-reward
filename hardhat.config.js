@@ -38,7 +38,7 @@ module.exports = {
     },
   },
   mocha: {
-    timout: 100000,
+    timout: 10000000,
   },
   gasReporter: {
     enabled: false,

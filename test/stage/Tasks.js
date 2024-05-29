@@ -47,7 +47,7 @@ developmentChains.includes(network.name)
           from: deployerSingerForFuji.address,
           log: true,
           args: [
-            networkConfig.fuji.router,
+            networkConfig.fuji.router, // 0xF694E193200268f9a4868e4Aa017A0118C9a8177,0x0b9d5D9136855f6FEc3c0993feE6E9CE8a297846,0x5498BB86BC934c8D34FDA08E81D444153d0D06aD
             networkConfig.fuji.link,
             networkConfig.fuji.priceFeed,
           ],
@@ -61,25 +61,30 @@ developmentChains.includes(network.name)
         );
 
         const addTaskResponse = await tasks.addTask({
+          // ["math","homework",5,0]
           name: "math",
           description: "homework",
           reward: 5, // USD
           status: 0, // created
         });
-        await addTaskResponse.wait(6);
+        await addTaskResponse.wait(5);
         // deployer add receiver and selector to task contract
         const response = await tasks.addDestinationContractAndSelector(
+          // 11155111,xx,16015286601757825753
           networkConfig.sepolia.chainId,
           receiverDeployInfo.address,
           "16015286601757825753" // to sepolia.  from seploia to fuji is 14767482510784806043
         );
-        await response.wait(6);
+        await response.wait(5);
         // user1 apply task
         const taskForUser = await tasks.connect(user1SingerForFuji);
         const [, indexs] = await taskForUser.showTasks();
         assert.equal(indexs.length, 1);
-        const applyTaskResponse = await taskForUser.applyTask(indexs[0]);
-        await applyTaskResponse.wait(6);
+        const applyTaskResponse = await taskForUser.applyTask(
+          networkConfig.sepolia.chainId,
+          indexs[0]
+        );
+        await applyTaskResponse.wait(5);
 
         await new Promise(async (resolve, reject) => {
           // deployer mark the task done

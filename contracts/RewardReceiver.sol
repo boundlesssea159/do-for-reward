@@ -52,4 +52,6 @@ contract RewardReceiver is CCIPReceiver {
     function withdraw() public onlyOwner {
         payable(owner).transfer(address(this).balance);
     }
+
+    receive() external payable {}
 }

@@ -175,7 +175,7 @@ contract Tasks {
         (bool success, ) = address(account).call{value: v}("");
         if (success) {
             emit TransferSuccess(account, v);
-            cleanTask(index);
+            _markDone(index);
         }
     }
 
@@ -195,7 +195,7 @@ contract Tasks {
             message
         );
         emit MessageSent(messageId);
-        cleanTask(index);
+        _markDone(index);
     }
 
     function buildCCIPMsg(
@@ -229,7 +229,7 @@ contract Tasks {
             revert NotEnoughBalance(linkToken.balanceOf(address(this)), fees);
     }
 
-    function cleanTask(uint256 taskIndex) internal {
+    function _markDone(uint256 taskIndex) internal {
         tasks[taskIndex].status = Status.Finished;
         delete taskToAccount[taskIndex];
     }

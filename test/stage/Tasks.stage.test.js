@@ -50,6 +50,14 @@ developmentChains.includes(network.name)
           receiverDeployInfo.address,
           deployerSingerForSepolia
         );
+        // give some ether to receiver
+        const sendTransactionToReceiverResponse =
+          await deployerSingerForSepolia.sendTransaction({
+            to: receiver.address,
+            value: ethers.parseEther("0.001"),
+          });
+        await sendTransactionToReceiverResponse.wait(5);
+
         // deployer deploy tasks contract on FUJI
         await deploy("Tasks", {
           from: deployerSingerForFuji.address,
@@ -94,6 +102,14 @@ developmentChains.includes(network.name)
           ethers.parseUnits("1", 18)
         );
         await linkTokenContractResponse.wait(5);
+        // transfer some avax to the contract to transaction
+        const sendTransactionToTaskResponse =
+          await deployerSingerForFuji.sendTransaction({
+            to: taskDeployInfo.address,
+            value: ethers.parseEther("0.001"),
+          });
+        await sendTransactionToTaskResponse.wait(5);
+
         // user1 apply task
         const taskForUser = await tasks.connect(user1SingerForFuji);
         const [, indexs] = await taskForUser.showTasks();
@@ -117,5 +133,13 @@ developmentChains.includes(network.name)
             resolve();
           });
         })();
+
+        // withdraw
+        const taskWithdrawResponse = await tasks.withdraw();
+        await taskWithdrawResponse.wait(5);
+        const withdrawLINKResponse = await tasks.withdrawLINK();
+        await withdrawLINKResponse.wait(5);
+        const receiverWithdrawResponse = await receiver.withdraw();
+        await receiverWithdrawResponse.wait(5);
       });
     });

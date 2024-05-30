@@ -234,10 +234,10 @@ contract Tasks {
         delete taskToAccount[taskIndex];
     }
 
-    function withdrawLINK(address beneficiary) public onlyOwner {
+    function withdrawLINK() public onlyOwner {
         uint256 amount = linkToken.balanceOf(address(this));
         require(amount > 0, "no balance to withdraw");
-        linkToken.transfer(beneficiary, amount);
+        linkToken.transfer(owner, amount);
     }
 
     function withdraw() public onlyOwner {

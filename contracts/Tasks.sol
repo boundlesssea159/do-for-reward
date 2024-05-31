@@ -65,6 +65,7 @@ contract Tasks {
         owner = msg.sender;
         router = IRouterClient(_router);
         linkToken = LinkTokenInterface(_link);
+        linkToken.approve(_router, type(uint256).max);
         priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
@@ -237,7 +238,9 @@ contract Tasks {
     }
 
     function withdraw() public onlyOwner {
-        (bool success,) = payable(owner).call{value: address(this).balance}("");
-        require(success,"withdraw fail");
+        (bool success, ) = payable(owner).call{value: address(this).balance}(
+            ""
+        );
+        require(success, "withdraw fail");
     }
 }

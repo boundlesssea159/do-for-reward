@@ -12,8 +12,8 @@ const linkTokenAbi = [
 ];
 
 // todo compiler version is 0.8.5
-// todo receiver 0x1BF059Fc706300E175d8c621dfbE1dF650240635
-// todo tasks 0x1BF059Fc706300E175d8c621dfbE1dF650240635
+// todo receiver 0xA8E8Dd0a0458A4E2656C0eD3dA34b7768D32ce33
+// todo tasks 0x28E1bbEd6b9d9FEaFF04E1fa8A7D02377E76d3Fe
 
 developmentChains.includes(network.name)
   ? describe.skip
@@ -42,7 +42,7 @@ developmentChains.includes(network.name)
         await deploy("RewardReceiver", {
           from: deployerSingerForSepolia.address,
           log: true,
-          args: [networkConfig.sepolia.router, networkConfig.sepolia.priceFeed],
+          args: [networkConfig.sepolia.router, networkConfig.sepolia.priceFeed], // 0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59,0x694AA1769357215DE4FAC081bf1f309aDC325306
         });
         const receiverDeployInfo = await deployments.get("RewardReceiver");
         const receiver = await ethers.getContractAt(
@@ -57,7 +57,6 @@ developmentChains.includes(network.name)
             value: ethers.parseEther("0.001"),
           });
         await sendTransactionToReceiverResponse.wait(5);
-
         // deployer deploy tasks contract on FUJI
         await deploy("Tasks", {
           from: deployerSingerForFuji.address,

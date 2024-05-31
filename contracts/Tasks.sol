@@ -116,10 +116,6 @@ contract Tasks {
             _task.status == Status.Created;
     }
 
-    function numOfTasks() public view returns (uint256) {
-        return tasks.length;
-    }
-
     function showTasks() public view returns (task[] memory, uint256[] memory) {
         task[] memory showAbleTasks = new task[](canBeAppliedNum);
         uint256[] memory indexs = new uint256[](canBeAppliedNum);

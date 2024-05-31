@@ -26,8 +26,8 @@ const { developmentChains } = require("../../config.helper.js");
         it("should add task by deployer", async () => {
           const addTaskResponse = await tasks.addTask(task);
           await addTaskResponse.wait(1);
-          const size = await tasks.numOfTasks();
-          assert.equal(size, 1);
+          const [, indexs] = await tasks.showTasks();
+          assert.equal(indexs.length, 1);
         });
 
         it("should fail to add a task without neceesary information", async () => {

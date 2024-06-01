@@ -75,7 +75,7 @@ developmentChains.includes(network.name)
           deployerSingerForFuji
         );
         const addTaskResponse = await tasks.addTask({
-          // ["math","homework",5,0]
+          // ["math","homework",100000000000000000,0]
           name: "math",
           description: "homework",
           reward: 5, // USD

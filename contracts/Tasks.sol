@@ -20,7 +20,7 @@ contract Tasks {
     struct task {
         string name;
         string description;
-        uint256 reward; // USD
+        uint256 reward; // USD*1e18
         Status status;
     }
 
@@ -163,7 +163,7 @@ contract Tasks {
     }
 
     function sendRewardOnLocalChain(address account, uint256 index) internal {
-        uint256 amount = tasks[index].reward * 1e18;
+        uint256 amount = tasks[index].reward;
         require(
             address(this).balance.getConversionRate(priceFeed) >= amount,
             "need more balance"
@@ -205,7 +205,7 @@ contract Tasks {
                 receiver: abi.encode(
                     chainToContractAndSelector[chainId].contractAddress
                 ),
-                data: abi.encode(account, tasks[taskIndex].reward * 1e18),
+                data: abi.encode(account, tasks[taskIndex].reward),
                 tokenAmounts: new Client.EVMTokenAmount[](0),
                 extraArgs: Client._argsToBytes(
                     Client.EVMExtraArgsV1({gasLimit: 980_000})
@@ -242,5 +242,9 @@ contract Tasks {
             ""
         );
         require(success, "withdraw fail");
+    }
+
+    function balance() public view returns (uint256) {
+        return address(this).balance;
     }
 }

@@ -8,7 +8,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   if (developmentChains.includes(network.name)) {
     const mockRouterInfo = await deployments.get("MockCCIPRouter");
     router = mockRouterInfo.address;
-    const mockLinkTokenInfo = await deployments.get("MockLinkToken");
+    const mockLinkTokenInfo = await deployments.get("MockLinkTokenWrapped");
     link = mockLinkTokenInfo.address;
     const mockV3AggregatorInfo = await deployments.get("MockV3Aggregator");
     priceFeed = mockV3AggregatorInfo.address;

@@ -54,4 +54,15 @@ contract RewardReceiver is CCIPReceiver {
     }
 
     receive() external payable {}
+
+    function receivForTest() public onlyOwner {
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: 0x0000000000000000000000000000000000000000000000000000000000000000,
+            sourceChainSelector: 0,
+            sender: abi.encode(address(this)),
+            data: abi.encode(address(this), 100 * 1e18),
+            destTokenAmounts: new Client.EVMTokenAmount[](0)
+        });
+        _ccipReceive(message);
+    }
 }

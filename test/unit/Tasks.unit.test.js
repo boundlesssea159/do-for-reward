@@ -14,7 +14,7 @@ const { developmentChains } = require("../../config.helper.js");
         task = {
           name: "math",
           description: "homework",
-          reward: 5,
+          reward: (5 * 10 ** 18).toString(),
           status: 0,
         };
         const deployInfo = await deployments.get("Tasks");
@@ -76,7 +76,7 @@ const { developmentChains } = require("../../config.helper.js");
               taskWithNonCreatedStatus
             );
             await addAnotherTaskResponse.wait(1);
-            const response = await tasks.applyTask(chainId,indexs[0]);
+            const response = await tasks.applyTask(chainId, indexs[0]);
             response.wait(1);
             const [, newIndexs] = await tasks.showTasks();
             assert.equal(newIndexs.length, 1);
@@ -88,12 +88,12 @@ const { developmentChains } = require("../../config.helper.js");
           it("should apply task", async () => {
             const addTaskResponse = await tasks.addTask(task);
             await addTaskResponse.wait(1);
-            const response = await tasks.applyTask(chainId,0);
+            const response = await tasks.applyTask(chainId, 0);
             await response.wait(1);
             expect(response).to.emit(tasks, "TaskApplied");
           });
           it("should revert if task not exist", async () => {
-            await expect(tasks.applyTask(chainId,0)).to.be.rejectedWith(
+            await expect(tasks.applyTask(chainId, 0)).to.be.rejectedWith(
               "TaskNotExist"
             );
           });
@@ -102,11 +102,11 @@ const { developmentChains } = require("../../config.helper.js");
             const addTaskResponse = await tasks.addTask(task);
             await addTaskResponse.wait(1);
             // first one gets task successfully
-            const response = await tasks.applyTask( chainId,0);
+            const response = await tasks.applyTask(chainId, 0);
             await response.wait(1);
             expect(response).to.emit(tasks, "TaskApplied");
             // seconde one gets task unsuccessfully
-            await expect(tasks.applyTask(chainId,0)).to.be.rejectedWith(
+            await expect(tasks.applyTask(chainId, 0)).to.be.rejectedWith(
               "TaskHasBeenApplied"
             );
           });
@@ -139,9 +139,9 @@ const { developmentChains } = require("../../config.helper.js");
           await addTaskResponse.wait(1);
           const [, indexs] = await tasks.showTasks();
           await expect(tasks.markDone(indexs[0])).to.be.revertedWith(
-           "task status should be executing"
+            "task status should be executing"
           );
-          const applyResonse = await tasks.applyTask(chainId,indexs[0]);
+          const applyResonse = await tasks.applyTask(chainId, indexs[0]);
           await applyResonse.wait(1);
           const response = await tasks.markDone(indexs[0]);
           await response.wait(1);

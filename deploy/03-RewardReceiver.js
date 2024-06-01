@@ -19,7 +19,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log: true,
     args: [router, priceFeed],
   });
-  console.log("dfdf2");
 };
 
 module.exports.tags = ["all", "recevier"];

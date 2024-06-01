@@ -5,8 +5,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
   if (developmentChains.includes(network.name)) {
-    await deploy("MockLinkToken", {
-      contract: "MockLinkToken",
+    await deploy("MockLinkTokenWrapped", {
+      contract: "MockLinkTokenWrapped",
       from: deployer,
       log: true,
       args: [],

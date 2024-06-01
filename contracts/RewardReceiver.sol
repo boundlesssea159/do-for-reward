@@ -33,20 +33,12 @@ contract RewardReceiver is CCIPReceiver {
             (address, uint256)
         );
         // amount is USD * 1e18
-        balanceShouldMoreThanAmount(amount);
         uint256 tokenAmount = amount.getTokenAmountByUSD(priceFeed);
         (bool success, ) = to.call{value: tokenAmount}("");
         if (!success) {
             revert ReceivedFailed(to, tokenAmount);
         }
         emit Received(to, tokenAmount);
-    }
-
-    function balanceShouldMoreThanAmount(uint256 amount) internal view {
-        require(
-            address(this).balance.getConversionRate(priceFeed) >= amount,
-            "need more balance"
-        );
     }
 
     function withdraw() public onlyOwner {

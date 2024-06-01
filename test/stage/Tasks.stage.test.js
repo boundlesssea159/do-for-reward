@@ -11,10 +11,6 @@ const linkTokenAbi = [
   "function transfer(address to, uint256 value) public returns (bool)",
 ];
 
-// todo compiler version is 0.8.5
-// todo receiver 0xA8E8Dd0a0458A4E2656C0eD3dA34b7768D32ce33
-// todo tasks 0x28E1bbEd6b9d9FEaFF04E1fa8A7D02377E76d3Fe
-
 developmentChains.includes(network.name)
   ? describe.skip
   : describe("tasks", () => {
@@ -75,7 +71,7 @@ developmentChains.includes(network.name)
           deployerSingerForFuji
         );
         const addTaskResponse = await tasks.addTask({
-          // ["math","homework",100000000000000000,0]
+          // ["view video","click like and follow button",10000000000000000,0]
           name: "math",
           description: "homework",
           reward: 5, // USD
